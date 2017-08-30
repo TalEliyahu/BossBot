@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api')
-const token = '403677977:AAF7c5fPp-Th-c-G5DdWHmNEZOJHTZI4nfc'
-const bot = new TelegramBot(token, { polling: true });
+const config = require('./config')
+
+const bot = new TelegramBot(config.bot_token, { polling: true });
 
 
 // delete messages according on filters
@@ -29,9 +30,11 @@ let isArabicMessage = function (msg) {
 
 // cheks if message contains url
 let isUrlMessage = function (msg) {
-    for (let e of msg.entities) {
-        if (e.type == 'url') { // url messages have type 'url'
-            return true
+    if (msg.entities) {
+        for (let e of msg.entities) {
+            if (e.type == 'url') { // url messages have type 'url'
+                return true
+            }
         }
     }
     return false
