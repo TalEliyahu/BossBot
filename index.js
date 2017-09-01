@@ -80,7 +80,7 @@ let isJoinedMessage = function (msg) {
 
 // checks if message contains arabic symbols
 let isArabicMessage = function (msg) {
-    return (msg.cfg && msg.cfg.arabicMsg) && /[\u0600-\u06FF]/.test(msg.text) // testing on 'arabic' regex
+    return (msg.cfg && msg.cfg.arabicMsg) && /[\u0600-\u065F\u066A-\u06EF\u06FA-\u06FF]/.test(msg.text) // testing on 'arabic' regex
 }
 
 // cheks if message contains url
