@@ -11,12 +11,10 @@ MongoClient.connect(config.mongo_connection).then(function (db) { // first - con
     mongoMessages = db.collection('messages')
     mongoMessages.createIndex({postedDate: 1}, { expireAfterSeconds: 10 }).then(() => {
         bot.startPolling() //then start bot
-
     })
 }).catch(function (e) {
     console.log("FATAL :: " + e)
 })
-
 
 bot.onText(/\/config/, function (msg, match) { // request configuration keyboard to PM
     if (msg.chat.type == 'supergroup') {
@@ -44,7 +42,7 @@ bot.on('message', (msg) => {
     mongoGroups.findOne({ groupId: msg.chat.id }).then(res => { // load group configuration
         msg.cfg = res
 
-        if (isJoinedMessage(msg) || isArabicMessage(msg) || isUrlMessage(msg)) {
+        if (isJoinedMessage(msg) || isArabicMessage(msg) || isUrlMessage(msg) || isCommand(msg)) {
             bot.deleteMessage(msg.chat.id, msg.message_id)
         }
     })
@@ -72,6 +70,11 @@ bot.on('callback_query', query => {
         })
     })
 })
+
+// checks if message is message contains bot commands
+let isCommand = function(msg){
+    return msg.cfg && msg.cfg.deleteCommands && msg.entities.filter(x=>x.type == "bot_command").length > 0
+}
 
 // checks if message is 'user joined/left to jroup' 
 let isJoinedMessage = function (msg) {
@@ -112,6 +115,9 @@ let getConfigKeyboard = function (chatId) { // prepare config keyboard
                 }], [{
                     text: `${groupConfig.urlMsg ? "✔️" : "❌"} | delete messages with urls`,
                     callback_data: `${groupConfig.groupId}#urlMsg`
+                }], [{
+                    text: `${groupConfig.deleteCommands ? "✔️" : "❌"} | delete messages with commands`,
+                    callback_data: `${groupConfig.groupId}#deleteCommands`
                 }]
             ]
         }
@@ -138,6 +144,7 @@ class GroupConfig {
         this.joinedMsg = false
         this.arabicMsg = false
         this.urlMsg = false
+        this.deleteCommands = false
         this.groupId = id
     }
 }
