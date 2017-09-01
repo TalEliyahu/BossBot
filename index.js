@@ -1,5 +1,5 @@
 const config = require('./config')
-
+// database connectivity
 var MongoClient = require('mongodb').MongoClient
 const TelegramBot = require('node-telegram-bot-api')
 
