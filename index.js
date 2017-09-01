@@ -9,7 +9,7 @@ const bot = new TelegramBot(config.bot_token, { polling: { autoStart: false } })
 MongoClient.connect(config.mongo_connection).then(function (db) { // first - connect to database
     mongoGroups = db.collection('groups')
     mongoMessages = db.collection('messages')
-    mongoMessages.createIndex({postedDate: 1}, { expireAfterSeconds: 10 }).then(() => {
+    mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 10 }).then(() => {
         bot.startPolling() //then start bot
     })
 }).catch(function (e) {
@@ -42,7 +42,7 @@ bot.on('message', (msg) => {
     mongoGroups.findOne({ groupId: msg.chat.id }).then(res => { // load group configuration
         msg.cfg = res
 
-        if (isJoinedMessage(msg) || isArabicMessage(msg) || isUrlMessage(msg) || isCommand(msg)) {
+        if (isJoinedMessage(msg) || isArabicMessage(msg) || isUrlMessage(msg) || isCommand(msg) || isPinnedServiceMessage(msg)) {
             bot.deleteMessage(msg.chat.id, msg.message_id)
         }
     })
@@ -72,15 +72,18 @@ bot.on('callback_query', query => {
 })
 
 // checks if message is message contains bot commands
-let isCommand = function(msg){
-    return msg.cfg && msg.cfg.deleteCommands && msg.entities.filter(x=>x.type == "bot_command").length > 0
+let isCommand = function (msg) {
+    return msg.cfg && msg.cfg.deleteCommands && msg.entities && msg.entities.filter(x => x.type == "bot_command").length > 0
 }
 
 // checks if message is 'user joined/left to jroup' 
 let isJoinedMessage = function (msg) {
     return (msg.cfg && msg.cfg.joinedMsg) && (msg.new_chat_member !== undefined || msg.left_chat_member !== undefined)
 }
-
+// checks if message is service 'pinned message' message
+let isPinnedServiceMessage = function (msg) {
+    return msg.cfg && msg.cfg.pinnedMsg && msg.pinned_message !== undefined;
+}
 // checks if message contains arabic symbols
 let isArabicMessage = function (msg) {
     return (msg.cfg && msg.cfg.arabicMsg) && /[\u0600-\u065F\u066A-\u06EF\u06FA-\u06FF]/.test(msg.text) // testing on 'arabic' regex
@@ -109,6 +112,9 @@ let getConfigKeyboard = function (chatId) { // prepare config keyboard
                 [{
                     text: `${groupConfig.joinedMsg ? "✔️" : "❌"} | delete 'joined' messages`,
                     callback_data: `${groupConfig.groupId}#joinedMsg`
+                }], [{
+                    text: `${groupConfig.pinnedMsg ? "✔️" : "❌"} | delete 'pinned' messages`,
+                    callback_data: `${groupConfig.groupId}#pinnedMsg`
                 }], [{
                     text: `${groupConfig.arabicMsg ? "✔️" : "❌"} | delete arabic messages`,
                     callback_data: `${groupConfig.groupId}#arabicMsg`
@@ -142,6 +148,7 @@ let getConfigKeyboard = function (chatId) { // prepare config keyboard
 class GroupConfig {
     constructor(id) {
         this.joinedMsg = false
+        this.pinnedMsg = false
         this.arabicMsg = false
         this.urlMsg = false
         this.deleteCommands = false
