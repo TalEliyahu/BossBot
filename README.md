@@ -9,7 +9,7 @@ If you are about to obtain your own copy/fork of this bot complete the following
 $ git clone https://github.com/Singapore-Tech-Entrepreneurs/telegram_bot_for_admins.git
 ```
 
-2) Install dependencies
+2) Install dependencies (you need [node.js](https://nodejs.org/) and NPM installed)
 ```
 $ cd telegram_bot_for_admins
 $ npm install
