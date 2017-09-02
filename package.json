@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "babel src -d lib",
+    "compile": "babel -d build/ src/",
     "test": "mocha --compilers js:babel-core/register",
-    "start": "babel-node index.js"
+    "start": "babel-node ./src/index.js"
   },
   "author": "",
   "license": "ISC",

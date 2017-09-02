@@ -5,12 +5,10 @@ node_modules/
 
 # Build #
 #########
-nac.js
 
 # data #
 ########
-gamelist.json
-platformlist.json
+nac.js
 
 # debug #
 #########
@@ -19,6 +17,7 @@ platformlist.json
 # IDE/vim/etc #
 ###############
 .tern-project
+.vscode/
 
 # OS generated files #
 ######################
