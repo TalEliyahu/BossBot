@@ -39,11 +39,15 @@ bot.on('message', (msg) => {
     if (msg.chat.type != 'supergroup') {
         return //we can delete messages only from supergroups 
     }
-    mongoGroups.findOne({ groupId: msg.chat.id }).then(res => { // load group configuration
+    mongoGroups.findOne({ groupId: msg.chat.id }).then(async res => { // load group configuration
         msg.cfg = res
 
-        if (isJoinedMessage(msg) || isArabicMessage(msg) || isUrlMessage(msg) || isCommand(msg) || isPinnedServiceMessage(msg)) {
+        mongoMessages.insertOne(new MessageEntry(msg.from.id, msg.chat.id))
+
+        if (isJoinedMessage(msg) || isArabicMessage(msg) || isUrlMessage(msg) || isCommand(msg) || isPinnedServiceMessage(msg)) { //filters
             bot.deleteMessage(msg.chat.id, msg.message_id)
+        } else { //spam
+            await checkIfSpam(msg)
         }
     })
 
@@ -105,6 +109,18 @@ let isUrlMessage = function (msg) {
     return false
 }
 
+let checkIfSpam = async function (msg) {
+    if (!msg.cfg || !msg.cfg.restrictSpam)
+        return
+
+    let entry = new MessageEntry(msg.from.id, msg.chat.id, { $gte: new Date((new Date()).getTime() - 10 * 1000) })
+    console.dir(entry)
+    let count = await mongoMessages.count(entry)
+
+    if (count > 5)
+        restrictSpammer(msg)
+}
+
 let getConfigKeyboard = function (chatId) { // prepare config keyboard
     let getSetOfKeys = function (groupConfig) {
         return {
@@ -142,8 +158,9 @@ let getConfigKeyboard = function (chatId) { // prepare config keyboard
     })
 }
 
-
-
+let restrictSpammer = function (msg) {
+    bot.deleteMessage(msg.chat.id, msg.message_id)
+}
 
 class GroupConfig {
     constructor(id) {
@@ -152,6 +169,15 @@ class GroupConfig {
         this.arabicMsg = false
         this.urlMsg = false
         this.deleteCommands = false
+        this.restrictSpam = false
         this.groupId = id
+    }
+}
+
+class MessageEntry {
+    constructor(userid, groupId, date) {
+        this.postedDate = date || new Date()
+        this.userId = userid
+        this.groupId = groupId
     }
 }
