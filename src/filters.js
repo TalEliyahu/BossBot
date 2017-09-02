@@ -33,3 +33,29 @@ export function isBotCommand(msg) {
     return false;
   }
 }
+
+export function isPinnedServiceMessage(msg) {
+  if (msg.hasOwnProperty('pinned_message')) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+// Return default cfg
+export function groupConfig(chatId) {
+  return {
+    joinedMsg: false,
+    pinnedMsg: false,
+    arabicMsg: false,
+    urlMsg: false,
+    deleteCommands: false,
+    groupId: chatId
+  }
+}
+
+// check every cfg param and if true - check message
+export function filterReducer(msg, cfg) {
+  if ((cfg.joinedMsg && isJoinedMessage(msg)) || (cfg.pinnedMsg && isPinnedServiceMessage(msg)) || (cfg.arabic && isArabicMessage(msg)) || (cfg.urlMsg && isUrlMessage(msg)) || (cfg.deleteCommands && isBotCommand(msg))) return true;
+  return false;
+}
