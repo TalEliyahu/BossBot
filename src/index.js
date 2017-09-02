@@ -10,6 +10,7 @@ import {
   isUrlMessage,
   isBotCommand,
   isPinnedServiceMessage,
+  groupConfig,
   filterReducer
 } from './filters.js'
 
@@ -99,7 +100,7 @@ function getConfigKeyboard(chatId) { // prepare config keyboard
     mongoGroups.findOne({ groupId: chatId })
       .then((res) => {
         if (res === undefined || res.length === 0) {
-          let g = GroupConfig(chatId)
+          let g = groupConfig(chatId)
           mongoGroups.insertOne(g)
             .then(() => { resolve(getSetOfKeys(g)) })
         } else {
