@@ -1,3 +1,31 @@
-node_modules
-.vscode/
-config.json
+# Folders #
+###########
+_obj
+node_modules/
+
+# Build #
+#########
+nac.js
+
+# data #
+########
+gamelist.json
+platformlist.json
+
+# debug #
+#########
+*.log
+
+# IDE/vim/etc #
+###############
+.tern-project
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

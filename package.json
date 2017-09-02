@@ -4,13 +4,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "build": "babel src -d lib",
+    "test": "mocha --compilers js:babel-core/register",
+    "start": "babel-node index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "mongodb": "^2.2.31",
     "node-telegram-bot-api": "^0.28.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.0",
+    "babel-register": "^6.26.0",
+    "mocha": "^3.5.0"
   }
 }
