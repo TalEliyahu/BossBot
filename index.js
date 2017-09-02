@@ -140,6 +140,9 @@ let getConfigKeyboard = function (chatId) { // prepare config keyboard
                 }], [{
                     text: `${groupConfig.deleteCommands ? "✔️" : "❌"} | delete messages with commands`,
                     callback_data: `${groupConfig.groupId}#deleteCommands`
+                }], [{
+                    text: `${groupConfig.restrictSpam ? "✔️" : "❌"} | restrict spam`,
+                    callback_data: `${groupConfig.groupId}#restrictSpam`
                 }]
             ]
         }
