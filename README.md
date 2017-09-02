@@ -1,5 +1,5 @@
 # Telegram Bot for Admins
-Open-source bot that help you to administrate large telegram communities.
+Open-source bot that helps you to administrate Telegram groups.
 
 ## Installing
 If you are about to obtain your own copy/fork of this bot complete the following steps:
