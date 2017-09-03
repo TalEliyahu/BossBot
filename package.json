@@ -4,9 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "compile": "babel -d build/ src/",
-    "test": "mocha --compilers js:babel-core/register",
-    "start": "babel-node ./src/index.js"
+    "test": "mocha",
+    "start": "node index.js"
   },
   "author": "",
   "license": "ISC",
@@ -15,9 +14,6 @@
     "node-telegram-bot-api": "^0.28.0"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-preset-env": "^1.6.0",
-    "babel-register": "^6.26.0",
     "mocha": "^3.5.0"
   }
 }

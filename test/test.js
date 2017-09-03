@@ -1,29 +1,13 @@
-import assert from 'assert';
-import {
-  isJoinedMessage,
-  isArabicMessage,
-  isUrlMessage,
-  isBotCommand
-} from '../src/filters.js';
+const assert = require('assert');
 
-
+const isJoinedMessage = require('../lib/filters.js').isJoinedMessage;
+const isPinnedServiceMessage = require('../lib/filters.js').isPinnedServiceMessage;
+const isArabicMessage = require('../lib/filters.js').isArabicMessage;
+const isUrlMessage = require('../lib/filters.js').isUrlMessage;
+const isBotCommand = require('../lib/filters.js').isBotCommand;
 
 // =========== TEST FILTER FUNCTIONS {{{
 // Message samples
-const msgWithUrl = { //{{{
-  message_id: 7,
-  from: {
-    id: 402684405,
-    is_bot: false,
-    first_name: 'Anton',
-    last_name: 'Bryansky',
-    username: 'Nacalyator'
-  },
-  chat: { id: -1001055197589, title: 'Naca', type: 'supergroup' },
-  date: 1504309593,
-  text: 'www.github.com',
-  entities: [ { offset: 0, length: 14, type: 'url' } ]
-} //}}}
 
 const msgWithText = { //{{{
   message_id: 8,
@@ -37,20 +21,6 @@ const msgWithText = { //{{{
   chat: { id: -1001055197589, title: 'Naca', type: 'supergroup' },
   date: 1504309602,
   text: 'test message'
-} //}}}
-
-const msgWithArabic = { //{{{
-  message_id: 9,
-  from: {
-    id: 402684405,
-    is_bot: false,
-    first_name: 'Anton',
-    last_name: 'Bryansky',
-    username: 'Nacalyator'
-  },
-  chat: { id: -1001055197589, title: 'Naca', type: 'supergroup' },
-  date: 1504309636,
-  text: 'ڃ ڄ څ چ ڇ ڈ ډ ڊ ڋ ڌ ڍ ڎ ڏ 0690 ڐ ڑ ڒ ړ ڔ ڕ ږ ڗ ژ ڙ ښ ڛ'
 } //}}}
 
 const msgJoined = { //{{{
@@ -112,6 +82,37 @@ const msgLeft = { //{{{
     last_name: 'Bushmelev',
     username: 'Bushmelev_Aleksey'
   }
+} //}}}
+
+const msgPinned = {};
+
+const msgWithArabic = { //{{{
+  message_id: 9,
+  from: {
+    id: 402684405,
+    is_bot: false,
+    first_name: 'Anton',
+    last_name: 'Bryansky',
+    username: 'Nacalyator'
+  },
+  chat: { id: -1001055197589, title: 'Naca', type: 'supergroup' },
+  date: 1504309636,
+  text: 'ڃ ڄ څ چ ڇ ڈ ډ ڊ ڋ ڌ ڍ ڎ ڏ 0690 ڐ ڑ ڒ ړ ڔ ڕ ږ ڗ ژ ڙ ښ ڛ'
+} //}}}
+
+const msgWithUrl = { //{{{
+  message_id: 7,
+  from: {
+    id: 402684405,
+    is_bot: false,
+    first_name: 'Anton',
+    last_name: 'Bryansky',
+    username: 'Nacalyator'
+  },
+  chat: { id: -1001055197589, title: 'Naca', type: 'supergroup' },
+  date: 1504309593,
+  text: 'www.github.com',
+  entities: [ { offset: 0, length: 14, type: 'url' } ]
 } //}}}
 
 const msgBotCmd = {};

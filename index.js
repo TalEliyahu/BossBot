@@ -1,18 +1,11 @@
 // Import modules
-import { MongoClient } from 'mongodb';
-import TelegramBot from 'node-telegram-bot-api';
+const MongoClient = require('mongodb').MongoClient;
+const TelegramBot = require('node-telegram-bot-api');
 // Import
-import config from './config';
+const config = require('./config');
 // Import filter functions
-import {
-  isJoinedMessage,
-  isArabicMessage,
-  isUrlMessage,
-  isBotCommand,
-  isPinnedServiceMessage,
-  groupConfig,
-  filterReducer
-} from './filters.js'
+const groupConfig = require('./lib/filters').groupConfig;
+const filterReducer = require('./lib/filters').filterReducer;
 
 let mongoGroups, mongoMessages;
 const bot = new TelegramBot(config.bot_token, { polling: { autoStart: false } }) //
