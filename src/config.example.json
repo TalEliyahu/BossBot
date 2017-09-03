@@ -1,0 +1,4 @@
+{
+  "bot_token": "<your telegram token here>",
+  "mongo_connection": "mongodb:\/\/<your connection here>"
+}
