@@ -15,6 +15,7 @@ import {
 } from './filters.js'
 
 let mongoGroups, mongoMessages;
+const bot = new TelegramBot(config.bot_token, { polling: { autoStart: false } }) //
 
 // Load databases and then start bot
 MongoClient.connect(config.mongo_connection)
@@ -129,6 +130,9 @@ function getSetOfKeys(groupConfig) {
       }], [{
         text: `${groupConfig.deleteCommands ? "✔️" : "❌"} | delete messages with commands`,
         callback_data: `${groupConfig.groupId}#deleteCommands`
+      }], [{
+        text: `${groupConfig.restrictSpam ? "✔️" : "❌"} | restrict spam`,
+        callback_data: `${groupConfig.groupId}#restrictSpam`
       }]
     ]
   }

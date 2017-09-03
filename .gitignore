@@ -5,10 +5,12 @@ node_modules/
 
 # Build #
 #########
+build/
 
 # data #
 ########
 nac.js
+config.json
 
 # debug #
 #########

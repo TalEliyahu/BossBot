@@ -4,7 +4,7 @@ import {
   isArabicMessage,
   isUrlMessage,
   isBotCommand
-} from '../src/filter.js';
+} from '../src/filters.js';
 
 
 
