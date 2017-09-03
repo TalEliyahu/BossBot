@@ -53,7 +53,7 @@ bot.onText(/\/config/, function (msg, match) { // request configuration keyboard
 bot.on('message', (msg) => {
     if (msg.chat.type !== 'supergroup') return; //we can delete messages only from supergroups 
     mongoGroups.findOne({ groupId: msg.chat.id })
-        .then((cfg) => { // load group configuration
+        .then(async (cfg) => { // load group configuration
             mongoMessages.insertOne(new MessageEntry(msg.from.id, msg.chat.id))
 
             if (filterReducer(msg, cfg)) {
@@ -90,7 +90,7 @@ bot.on('callback_query', query => {
         })
 })
 
-let checkIfSpam = async function (msg) {
+async function checkIfSpam (msg) {
     if (!msg.cfg || !msg.cfg.restrictSpam)
         return
 

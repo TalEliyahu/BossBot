@@ -1,10 +1,10 @@
 const assert = require('assert');
 
-const isJoinedMessage = require('../lib/filters.js').isJoinedMessage;
-const isPinnedServiceMessage = require('../lib/filters.js').isPinnedServiceMessage;
-const isArabicMessage = require('../lib/filters.js').isArabicMessage;
-const isUrlMessage = require('../lib/filters.js').isUrlMessage;
-const isBotCommand = require('../lib/filters.js').isBotCommand;
+const isJoinedMessage = require('../lib/filters.js').implementation.isJoinedMessage;
+const isPinnedServiceMessage = require('../lib/filters.js').implementation.isPinnedServiceMessage;
+const isArabicMessage = require('../lib/filters.js').implementation.isArabicMessage;
+const isUrlMessage = require('../lib/filters.js').implementation.isUrlMessage;
+const isBotCommand = require('../lib/filters.js').implementation.isBotCommand;
 
 // =========== TEST FILTER FUNCTIONS {{{
 // Message samples
