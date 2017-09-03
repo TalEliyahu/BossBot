@@ -24,24 +24,21 @@ MongoClient.connect(config.mongo_connection)
         console.log(`FATAL :: ${e}`);
     });
 
-
-
 // Bot reaction on commands "/config"
-bot.onText(/\/config/, function (msg, match) { // request configuration keyboard to PM
+bot.onText(/\/config/, async function (msg, match) { // request configuration keyboard to PM
     if (match && msg.chat.type === 'supergroup') { // match must be not null (?)
         bot.deleteMessage(msg.chat.id, msg.message_id); // remove message with /cmd in supergroups
-        bot.getChatAdministrators(msg.chat.id) // get list of admins
-            .then((admins) => {
-                if (admins.filter(x => x.user.id == msg.from.id).length > 0) { // if sender is admin
-                    getConfigKeyboard(msg.chat.id)
-                        .then((kbd) => { // prepare keyboard
-                            bot.sendMessage(msg.from.id, `*${msg.chat.title}*`, { // and sent it
-                                parse_mode: "markdown",
-                                reply_markup: kbd
-                            });
-                        })
-                }
-            })
+        let admins = await bot.getChatAdministrators(msg.chat.id) // get list of admins
+
+        if (admins.filter(x => x.user.id == msg.from.id).length > 0) { // if sender is admin
+            let kbd = await getConfigKeyboard(msg.chat.id) // prepare keyboard
+
+            bot.sendMessage(msg.from.id, `*${msg.chat.title}*`, { // and sent it
+                parse_mode: "markdown",
+                reply_markup: kbd
+            });
+        }
+
     } else if (msg.chat.type === 'private') {
         bot.sendMessage(msg.chat.id, "You sould use this command in supergroups that you want to configure");
     }
@@ -50,72 +47,63 @@ bot.onText(/\/config/, function (msg, match) { // request configuration keyboard
 
 
 // Bot messages monitoring
-bot.on('message', (msg) => {
+bot.on('message', async (msg) => {
     if (msg.chat.type !== 'supergroup') return; //we can delete messages only from supergroups 
-    mongoGroups.findOne({ groupId: msg.chat.id })
-        .then(async (cfg) => { // load group configuration
-            mongoMessages.insertOne(new MessageEntry(msg.from.id, msg.chat.id))
+    let cfg = await mongoGroups.findOne({ groupId: msg.chat.id }) // load group configuration
+    mongoMessages.insertOne(messageEntry(msg.from.id, msg.chat.id))
+    if (filterReducer(msg, cfg)) {
+        bot.deleteMessage(msg.chat.id, msg.message_id)
+    } else { //spam
+        if (cfg.restrictSpam)
+            await checkIfSpam(msg)
+    }
 
-            if (filterReducer(msg, cfg)) {
-                bot.deleteMessage(msg.chat.id, msg.message_id)
-            } else { //spam
-                await checkIfSpam(msg)
-            }
-        })
     console.dir(msg) // debug output
 })
 
 
 
 // Buttons responce in menu
-bot.on('callback_query', query => {
+bot.on('callback_query', async query => {
     let groupId = Number(query.data.split("#")[0])
     let prop = query.data.split("#")[1] // get info from button
-    mongoGroups.findOne({ groupId: groupId })
-        .then((g) => {
-            let val = !g[prop] // switch selected button
-            mongoGroups.updateOne({ groupId: groupId }, { $set: { [prop]: val } })
-                .then(() => {
-                    bot.answerCallbackQuery({ callback_query_id: query.id }) // store switched value
-                        .then((cb) => {
-                            getConfigKeyboard(groupId)
-                                .then(kbd => { // update keyboard
-                                    bot.editMessageReplyMarkup(kbd, {
-                                        chat_id: query.message.chat.id,
-                                        message_id: query.message.message_id
-                                    })
-                                })
-                        })
-                })
-        })
+    let g = await mongoGroups.findOne({ groupId: groupId })
+
+    let val = !g[prop] // switch selected button
+    await mongoGroups.updateOne({ groupId: groupId }, { $set: { [prop]: val } })
+
+    let cb = await bot.answerCallbackQuery({ callback_query_id: query.id }) // store switched value
+
+    let kbd = await getConfigKeyboard(groupId)// update keyboard
+
+    bot.editMessageReplyMarkup(kbd, {
+        chat_id: query.message.chat.id,
+        message_id: query.message.message_id
+    })
 })
 
-async function checkIfSpam (msg) {
-    if (!msg.cfg || !msg.cfg.restrictSpam)
-        return
+async function checkIfSpam(msg) {
 
-    let entry = new MessageEntry(msg.from.id, msg.chat.id, { $gte: new Date((new Date()).getTime() - 10 * 1000) })
-    console.dir(entry)
+    let entry = messageEntry(msg.from.id, msg.chat.id, { $gte: new Date((new Date()).getTime() - 10 * 1000) })
     let count = await mongoMessages.count(entry)
 
     if (count > 5)
         restrictSpammer(msg)
 }
 
+async function getConfigKeyboard(chatId) { // prepare config keyboard		
 
-function getConfigKeyboard(chatId) { // prepare config keyboard		
-    return new Promise(function (resolve, rej) {
-        mongoGroups.findOne({ groupId: chatId })
-            .then((res) => {
-                if (res === undefined || res.length === 0) {
-                    let g = groupConfig(chatId)
-                    mongoGroups.insertOne(g)
-                        .then(() => { resolve(getSetOfKeys(g)) })
-                } else {
-                    resolve(getSetOfKeys(res))
-                }
-            })
-    })
+    let res = await mongoGroups.findOne({ groupId: chatId })
+
+    if (res === undefined || res.length === 0) {
+        let g = groupConfig(chatId)
+        await mongoGroups.insertOne(g)
+        return getSetOfKeys(g)
+    } else {
+        return getSetOfKeys(res)
+    }
+
+
 }
 
 // Return keyboard preset
@@ -145,15 +133,14 @@ function getSetOfKeys(groupConfig) {
     }
 }
 
-let restrictSpammer = function (msg) {
+function restrictSpammer(msg) {
     bot.deleteMessage(msg.chat.id, msg.message_id)
 }
 
-
-class MessageEntry {
-    constructor(userid, groupId, date) {
-        this.postedDate = date || new Date()
-        this.userId = userid
-        this.groupId = groupId
+function messageEntry(userid, groupId, date) {
+    return {
+        postedDate: date || new Date(),
+        userId: userid,
+        groupId: groupId
     }
 }
