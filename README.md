@@ -41,22 +41,22 @@ You can activate and configure features in the menu, that bot sends you by typin
 Just push the button with function you want to toggle.
 
 ### Delete "`%user%` joined the group" messages
->If enabled, bot will delete all "%user% joined the group" and "%user% left the group" service messages. That works only for new messages that was sent when option was enabled.
+If enabled, bot will delete all "%user% joined the group" and "%user% left the group" service messages. That works only for new messages that was sent when option was enabled.
 
 ### Delete "`%user%` pinned «`%message%`»"
->Works same as above for "pinned" service messages
+Works same as above for "pinned" service messages
 
 ### Delete arabic messages
->If enabled, bot will delete all mesages with any arabic symbols.
+If enabled, bot will delete all mesages with any arabic symbols.
 
 ### Delete messages with urls
->If enabled, bot will delete all mesages with urls. Urls are detected by default telegram mechanism.
+If enabled, bot will delete all mesages with urls. Urls are detected by default telegram mechanism.
 
 ### Delete messages with commands
->If enabled, bot will delete all mesages with commands, e.g. "`/config`"
+If enabled, bot will delete all mesages with commands, e.g. "`/config`"
 
 ### Restrict spam
->If enabled, bot will delete messages that user sends too frequently. Rules and type of restriction will be configurable in future releases.
+If enabled, bot will delete messages that user sends too frequently. Rules and type of restriction will be configurable in future releases.
 
 
 ## Contibution
