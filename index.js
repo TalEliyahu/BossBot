@@ -10,7 +10,18 @@ const filterReducer = require('./lib/filters').filterReducer;
 let mongoGroups, mongoMessages;
 const token = process.env.BOT_TOKEN || require('./config').bot_token
 const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo_connection
-const bot = new TelegramBot(token, { polling: { autoStart: false } }) //
+const options = {
+    webHook: {
+      // Port to which you should bind is assigned to $PORT variable
+      // See: https://devcenter.heroku.com/articles/dynos#local-environment-variables
+      port: process.env.PORT
+      // you do NOT need to set up certificates since Heroku provides
+      // the SSL certs already (https://<app-name>.herokuapp.com)
+      // Also no need to pass IP because on Heroku you need to bind to 0.0.0.0
+    }
+  };
+  
+const bot = new TelegramBot(token, options) //
 
 // Load databases and then start bot
 MongoClient.connect(mongoConection)
