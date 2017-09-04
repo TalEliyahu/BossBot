@@ -17,7 +17,12 @@ MongoClient.connect(config.mongo_connection)
         mongoMessages = db.collection('messages');
         mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 10 })
             .then(() => {
-                bot.startPolling();
+                let url = process.env.APP_URL
+                if (url) {
+                    bot.setWebHook(`${url}/bot${config.bot_token}`)
+                } else {
+                    bot.startPolling()
+                }
             })
     })
     .catch((e) => {
