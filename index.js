@@ -2,13 +2,15 @@
 const MongoClient = require('mongodb').MongoClient;
 const TelegramBot = require('node-telegram-bot-api');
 // Import
-const config = require('./config');
+//const config = require('./config');
 // Import filter functions
 const groupConfig = require('./lib/filters').groupConfig;
 const filterReducer = require('./lib/filters').filterReducer;
 
 let mongoGroups, mongoMessages;
-const bot = new TelegramBot(config.bot_token, { polling: { autoStart: false } }) //
+const token = process.env.BOT_TOKEN || require('./config').bot_token
+const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo_connection
+const bot = new TelegramBot(token, { polling: { autoStart: false } }) //
 
 // Load databases and then start bot
 MongoClient.connect(config.mongo_connection)
@@ -19,7 +21,7 @@ MongoClient.connect(config.mongo_connection)
             .then(() => {
                 let url = process.env.APP_URL
                 if (url) {
-                    bot.setWebHook(`${url}/bot${config.bot_token}`)
+                    bot.setWebHook(`${url}/bot${token}`)
                 } else {
                     bot.startPolling()
                 }
