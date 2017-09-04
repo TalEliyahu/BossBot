@@ -13,7 +13,7 @@ const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo
 const bot = new TelegramBot(token, { polling: { autoStart: false } }) //
 
 // Load databases and then start bot
-MongoClient.connect(config.mongo_connection)
+MongoClient.connect(mongoConection)
     .then(function (db) { // first - connect to database
         mongoGroups = db.collection('groups');
         mongoMessages = db.collection('messages');
