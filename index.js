@@ -116,6 +116,9 @@ bot.on('message', async (msg) => {
     if (msg.chat.type !== 'supergroup') return; //we can delete messages only from supergroups 
 
     let cfg = await mongoGroups.findOne({ groupId: msg.chat.id }) // load group configuration
+    if (cfg && cfg.helloMsg && msg.new_chat_member) {
+        bot.sendMessage(msg.chat.id, `Thanks for joining, *${msg.new_chat_member.first_name}*. Please follow the guidelines of the group and enjoy your time`, { parse_mode: "markdown" })
+    }
     mongoMessages.insertOne(messageEntry(msg.from.id, msg.chat.id))
     if (filterReducer(msg, cfg)) {
         bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { })
@@ -192,6 +195,9 @@ function getSetOfKeys(groupConfig) {
             }], [{
                 text: `${groupConfig.restrictSpam ? "✔️" : "❌"} | restrict spam`,
                 callback_data: `${groupConfig.groupId}#restrictSpam`
+            }], [{
+                text: `${groupConfig.helloMsg ? "✔️" : "❌"} | hello message for new members`,
+                callback_data: `${groupConfig.groupId}#helloMsg`
             }]
         ]
     }
