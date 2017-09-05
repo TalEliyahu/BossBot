@@ -10,31 +10,42 @@ const filterReducer = require('./lib/filters').filterReducer;
 let mongoGroups, mongoMessages;
 const token = process.env.BOT_TOKEN || require('./config').bot_token
 const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo_connection
-const options = {
-    webHook: {
-      // Port to which you should bind is assigned to $PORT variable
-      // See: https://devcenter.heroku.com/articles/dynos#local-environment-variables
-      port: process.env.PORT
-      // you do NOT need to set up certificates since Heroku provides
-      // the SSL certs already (https://<app-name>.herokuapp.com)
-      // Also no need to pass IP because on Heroku you need to bind to 0.0.0.0
+let options = {}
+if (process.env.APP_URL) {
+    console.log("using webhooks, " + process.env.APP_URL)
+    options = {
+        webHook: {
+            port: process.env.PORT
+        }
     }
-  };
-  
-const bot = new TelegramBot(token, options) //
+}
+else {
+    console.log("using longpoll")
+    options = {
+        polling: {
+            autoStart: false
+        }
+    }
+}
 
+const bot = new TelegramBot(token, options) //
+let me
 // Load databases and then start bot
 MongoClient.connect(mongoConection)
     .then(function (db) { // first - connect to database
         mongoGroups = db.collection('groups');
         mongoMessages = db.collection('messages');
         mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 10 })
-            .then(() => {
+            .then(async () => {
                 let url = process.env.APP_URL
                 if (url) {
+                    console.log('hookin')
                     bot.setWebHook(`${url}/bot${token}`)
                 } else {
+                    console.log('pollin')
+                    me = await bot.getMe()
                     bot.startPolling()
+
                 }
             })
     })
@@ -44,33 +55,70 @@ MongoClient.connect(mongoConection)
 
 // Bot reaction on commands "/config"
 bot.onText(/\/config/, async function (msg, match) { // request configuration keyboard to PM
+    //console.dir(me)
     if (match && msg.chat.type === 'supergroup') { // match must be not null (?)
-        bot.deleteMessage(msg.chat.id, msg.message_id); // remove message with /cmd in supergroups
+
+        bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { }) // remove message with /cmd in supergroups
+
         let admins = await bot.getChatAdministrators(msg.chat.id) // get list of admins
-
+        console.dir(admins)
         if (admins.filter(x => x.user.id == msg.from.id).length > 0) { // if sender is admin
-            let kbd = await getConfigKeyboard(msg.chat.id) // prepare keyboard
+            let alertMsg = ""
+            let needPromotion = false
+            let myAdminRights = admins.filter(x => x.user.id == me.id).length > 0 ? admins.filter(x => x.user.id == me.id)[0] : null
 
-            bot.sendMessage(msg.from.id, `*${msg.chat.title}*`, { // and sent it
-                parse_mode: "markdown",
-                reply_markup: kbd
-            });
+            if (!myAdminRights || !(myAdminRights.can_delete_messages && myAdminRights.can_restrict_members)) {
+                needPromotion = true
+            }
+
+            if (needPromotion) {
+                alertMsg = "\n_Bot have not enougth rights in this group! Promote him to admin, grant 'delete messages' and 'ban users' rights!_"
+                bot.sendMessage(msg.from.id, `${alertMsg}`, { // and sent it
+                    parse_mode: "markdown",
+                });
+            } else {
+                let kbd = await getConfigKeyboard(msg.chat.id) // prepare keyboard
+                bot.sendMessage(msg.from.id, `*${msg.chat.title}* configuration`, { // and sent it
+                    parse_mode: "markdown",
+                    reply_markup: kbd
+                });
+            }
         }
-
     } else if (msg.chat.type === 'private') {
         bot.sendMessage(msg.chat.id, "You sould use this command in supergroups that you want to configure");
     }
-});
+})
 
+bot.onText(/\/start/, function (msg) {
+    bot.sendMessage(msg.from.id, "Well done! You can use /help command to get some documentation.")
+})
 
+bot.onText(/\/help/, function (msg) {
+    let text = `*IMPORTANT*
+This bot can work only in supergroups for now!
+
+To configure bot in your group you need:
+    1) Invite bot to your group.
+    2) Promote him to admin (check all except "add new admin")
+    3) Configure bot by sending /config right into your group (message will disappear immediately).
+
+*Why should you send a message to the group but not private?*
+This is telegram limitation. In situation when you have couple of groups and want to configure one, bot cannot know which group you want to configure. So you need explicitly point it. Message will appear for moment, it wont interrupt chat members discussion.
+`
+
+    bot.sendMessage(msg.from.id, text, { // and sent it
+        parse_mode: "markdown"
+    })
+})
 
 // Bot messages monitoring
 bot.on('message', async (msg) => {
     if (msg.chat.type !== 'supergroup') return; //we can delete messages only from supergroups 
+
     let cfg = await mongoGroups.findOne({ groupId: msg.chat.id }) // load group configuration
     mongoMessages.insertOne(messageEntry(msg.from.id, msg.chat.id))
     if (filterReducer(msg, cfg)) {
-        bot.deleteMessage(msg.chat.id, msg.message_id)
+        bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { })
     } else { //spam
         if (cfg.restrictSpam)
             await checkIfSpam(msg)
@@ -78,8 +126,6 @@ bot.on('message', async (msg) => {
 
     console.dir(msg) // debug output
 })
-
-
 
 // Buttons responce in menu
 bot.on('callback_query', async query => {
@@ -152,7 +198,7 @@ function getSetOfKeys(groupConfig) {
 }
 
 function restrictSpammer(msg) {
-    bot.deleteMessage(msg.chat.id, msg.message_id)
+    bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { })
 }
 
 function messageEntry(userid, groupId, date) {
