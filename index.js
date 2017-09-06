@@ -29,7 +29,7 @@ else {
 }
 
 const bot = new TelegramBot(token, options) //
-let me
+let me = {}
 // Load databases and then start bot
 MongoClient.connect(mongoConection)
     .then(function (db) { // first - connect to database
@@ -38,14 +38,13 @@ MongoClient.connect(mongoConection)
         mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 10 })
             .then(async () => {
                 let url = process.env.APP_URL
+                me = await bot.getMe()
                 if (url) {
                     console.log('hookin')
                     bot.setWebHook(`${url}/bot${token}`)
                 } else {
                     console.log('pollin')
-                    me = await bot.getMe()
                     bot.startPolling()
-
                 }
             })
     })
@@ -62,6 +61,7 @@ bot.onText(/\/config/, async function (msg, match) { // request configuration ke
 
         let admins = await bot.getChatAdministrators(msg.chat.id) // get list of admins
         console.dir(admins)
+        console.dir(me)
         if (admins.filter(x => x.user.id == msg.from.id).length > 0) { // if sender is admin
             let alertMsg = ""
             let needPromotion = false
@@ -70,7 +70,8 @@ bot.onText(/\/config/, async function (msg, match) { // request configuration ke
             if (!myAdminRights || !(myAdminRights.can_delete_messages && myAdminRights.can_restrict_members)) {
                 needPromotion = true
             }
-
+            console.dir(msg)
+            
             if (needPromotion) {
                 alertMsg = "\n_Bot have not enougth rights in this group! Promote him to admin, grant 'delete messages' and 'ban users' rights!_"
                 bot.sendMessage(msg.from.id, `${alertMsg}`, { // and sent it
@@ -162,7 +163,7 @@ async function getConfigKeyboard(chatId) { // prepare config keyboard
 
     let res = await mongoGroups.findOne({ groupId: chatId })
 
-    if (res === undefined || res.length === 0) {
+    if (res === undefined || res === null || res.length === 0) {
         let g = groupConfig(chatId)
         await mongoGroups.insertOne(g)
         return getSetOfKeys(g)
