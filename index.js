@@ -1,15 +1,21 @@
 // Import modules
-const MongoClient = require('mongodb').MongoClient;
-const TelegramBot = require('node-telegram-bot-api');
+const MongoClient = require('mongodb').MongoClient
+const TelegramBot = require('node-telegram-bot-api')
 // Import
-//const config = require('./config');
+//const config = require('./config')
 // Import filter functions
-const groupConfig = require('./lib/filters').groupConfig;
-const filterReducer = require('./lib/filters').filterReducer;
+const groupConfig = require('./lib/filters').groupConfig
+const filterReducer = require('./lib/filters').filterReducer
 
-let mongoGroups, mongoMessages;
+let mongoGroups, mongoMessages
 const token = process.env.BOT_TOKEN || require('./config').bot_token
 const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo_connection
+
+const switcher = function (x) {
+    if (x) return "✔️"
+    return "❌"
+}
+
 let options = {}
 if (process.env.APP_URL) {
     console.log("using webhooks, " + process.env.APP_URL)
@@ -33,8 +39,8 @@ let me = {}
 // Load databases and then start bot
 MongoClient.connect(mongoConection)
     .then(function (db) { // first - connect to database
-        mongoGroups = db.collection('groups');
-        mongoMessages = db.collection('messages');
+        mongoGroups = db.collection('groups')
+        mongoMessages = db.collection('messages')
         mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 10 })
             .then(async () => {
                 let url = process.env.APP_URL
@@ -49,13 +55,13 @@ MongoClient.connect(mongoConection)
             })
     })
     .catch((e) => {
-        console.log(`FATAL :: ${e}`);
-    });
+        console.log(`FATAL :: ${e}`)
+    })
 
 // Bot reaction on commands "/config"
 bot.onText(/\/config/, async function (msg, match) { // request configuration keyboard to PM
     //console.dir(me)
-    if (match && msg.chat.type === 'supergroup') { // match must be not null (?)
+    if (msg.chat.type === 'supergroup') {
 
         bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { }) // remove message with /cmd in supergroups
 
@@ -64,29 +70,28 @@ bot.onText(/\/config/, async function (msg, match) { // request configuration ke
         console.dir(me)
         if (admins.filter(x => x.user.id == msg.from.id).length > 0) { // if sender is admin
             let alertMsg = ""
-            let needPromotion = false
             let myAdminRights = admins.filter(x => x.user.id == me.id).length > 0 ? admins.filter(x => x.user.id == me.id)[0] : null
+            let enoughtRights = myAdminRights && myAdminRights.can_delete_messages && myAdminRights.can_restrict_members
 
-            if (!myAdminRights || !(myAdminRights.can_delete_messages && myAdminRights.can_restrict_members)) {
-                needPromotion = true
-            }
-            console.dir(msg)
-            
-            if (needPromotion) {
-                alertMsg = "\n_Bot have not enougth rights in this group! Promote him to admin, grant 'delete messages' and 'ban users' rights!_"
-                bot.sendMessage(msg.from.id, `${alertMsg}`, { // and sent it
+            //console.dir(msg)
+
+            if (!enoughtRights) {
+                alertMsg = "_Bot have not enougth rights in this group! Promote him to admin, grant 'delete messages' and 'ban users' rights!_"
+                bot.sendMessage(msg.from.id, `${alertMsg}`, {
                     parse_mode: "markdown",
-                });
+                })
             } else {
                 let kbd = await getConfigKeyboard(msg.chat.id) // prepare keyboard
-                bot.sendMessage(msg.from.id, `*${msg.chat.title}* configuration`, { // and sent it
+                bot.sendMessage(msg.from.id, `*${msg.chat.title}* configuration`, {
                     parse_mode: "markdown",
                     reply_markup: kbd
-                });
+                })
             }
         }
     } else if (msg.chat.type === 'private') {
-        bot.sendMessage(msg.chat.id, "You sould use this command in supergroups that you want to configure");
+        bot.sendMessage(msg.chat.id, "You sould use this command in supergroups that you want to configure").catch(() => { })
+    } else if (msg.chat.type === 'group') {
+        bot.sendMessage(msg.from.id, "Normal groups are not supported yet. Upgrade this group to supergroup first!").catch(() => { })
     }
 })
 
@@ -114,17 +119,19 @@ This is telegram limitation. In situation when you have couple of groups and wan
 
 // Bot messages monitoring
 bot.on('message', async (msg) => {
-    if (msg.chat.type !== 'supergroup') return; //we can delete messages only from supergroups 
+    if (msg.chat.type !== 'supergroup') return //we can delete messages only from supergroups 
 
     let cfg = await mongoGroups.findOne({ groupId: msg.chat.id }) // load group configuration
-    if (cfg && cfg.helloMsg && msg.new_chat_member) {
+    
+    if (cfg && cfg.helloMsg && msg.new_chat_member) { // print hello message
         bot.sendMessage(msg.chat.id, `Thanks for joining, *${msg.new_chat_member.first_name}*. Please follow the guidelines of the group and enjoy your time`, { parse_mode: "markdown" })
     }
+
     mongoMessages.insertOne(messageEntry(msg.from.id, msg.chat.id))
-    if (filterReducer(msg, cfg)) {
+    if (filterReducer(msg, cfg)) { // check filters for message
         bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { })
-    } else { //spam
-        if (cfg.restrictSpam)
+    } else { // check if spam
+        if (cfg.restrictSpam) // check antispam enabled in config
             await checkIfSpam(msg)
     }
 
@@ -151,7 +158,6 @@ bot.on('callback_query', async query => {
 })
 
 async function checkIfSpam(msg) {
-
     let entry = messageEntry(msg.from.id, msg.chat.id, { $gte: new Date((new Date()).getTime() - 10 * 1000) })
     let count = await mongoMessages.count(entry)
 
@@ -160,18 +166,14 @@ async function checkIfSpam(msg) {
 }
 
 async function getConfigKeyboard(chatId) { // prepare config keyboard		
-
     let res = await mongoGroups.findOne({ groupId: chatId })
-
-    if (res === undefined || res === null || res.length === 0) {
+    if (!res || res.length === 0) {
         let g = groupConfig(chatId)
         await mongoGroups.insertOne(g)
         return getSetOfKeys(g)
     } else {
         return getSetOfKeys(res)
     }
-
-
 }
 
 // Return keyboard preset
@@ -179,25 +181,25 @@ function getSetOfKeys(groupConfig) {
     return {
         inline_keyboard: [
             [{
-                text: `${groupConfig.joinedMsg ? "✔️" : "❌"} | delete 'joined' messages`,
+                text: `${switcher(groupConfig.joinedMsg)} | delete 'joined' messages`,
                 callback_data: `${groupConfig.groupId}#joinedMsg`
             }], [{
-                text: `${groupConfig.pinnedMsg ? "✔️" : "❌"} | delete 'pinned' messages`,
+                text: `${switcher(groupConfig.pinnedMsg)} | delete 'pinned' messages`,
                 callback_data: `${groupConfig.groupId}#pinnedMsg`
             }], [{
-                text: `${groupConfig.arabicMsg ? "✔️" : "❌"} | delete arabic messages`,
+                text: `${switcher(groupConfig.arabicMsg)} | delete arabic messages`,
                 callback_data: `${groupConfig.groupId}#arabicMsg`
             }], [{
-                text: `${groupConfig.urlMsg ? "✔️" : "❌"} | delete messages with urls`,
+                text: `${switcher(groupConfig.urlMsg)} | delete messages with urls`,
                 callback_data: `${groupConfig.groupId}#urlMsg`
             }], [{
-                text: `${groupConfig.deleteCommands ? "✔️" : "❌"} | delete messages with commands`,
+                text: `${switcher(groupConfig.deleteCommands)} | delete messages with commands`,
                 callback_data: `${groupConfig.groupId}#deleteCommands`
             }], [{
-                text: `${groupConfig.restrictSpam ? "✔️" : "❌"} | restrict spam`,
+                text: `${switcher(groupConfig.restrictSpam)} | restrict spam`,
                 callback_data: `${groupConfig.groupId}#restrictSpam`
             }], [{
-                text: `${groupConfig.helloMsg ? "✔️" : "❌"} | hello message for new members`,
+                text: `${switcher(groupConfig.helloMsg)} | hello message for new members`,
                 callback_data: `${groupConfig.groupId}#helloMsg`
             }]
         ]
