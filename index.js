@@ -7,7 +7,8 @@ const TelegramBot = require('node-telegram-bot-api')
 const groupConfig = require('./lib/filters').groupConfig
 const filterReducer = require('./lib/filters').filterReducer
 
-let mongoGroups, mongoMessages
+let mongoGroups, mongoMessages, mongoNowConfigatates
+
 const token = process.env.BOT_TOKEN || require('./config').bot_token
 const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo_connection
 
@@ -41,18 +42,21 @@ MongoClient.connect(mongoConection)
     .then(function (db) { // first - connect to database
         mongoGroups = db.collection('groups')
         mongoMessages = db.collection('messages')
-        mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 10 })
-            .then(async () => {
-                let url = process.env.APP_URL
-                me = await bot.getMe()
-                if (url) {
-                    console.log('hookin')
-                    bot.setWebHook(`${url}/bot${token}`)
-                } else {
-                    console.log('pollin')
-                    bot.startPolling()
-                }
-            })
+        mongoNowConfigatates = db.collection('nowConfigurates')
+        mongoMessages.dropIndex('postedDate_1').then(() => {
+            mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 }) //store messages for 60 days
+                .then(async () => {
+                    let url = process.env.APP_URL
+                    me = await bot.getMe()
+                    if (url) {
+                        console.log('hookin')
+                        bot.setWebHook(`${url}/bot${token}`)
+                    } else {
+                        console.log('pollin')
+                        bot.startPolling()
+                    }
+                })
+        })
     })
     .catch((e) => {
         console.log(`FATAL :: ${e}`)
@@ -66,7 +70,9 @@ bot.onText(/\/config/, async function (msg, match) { // request configuration ke
 
         let admins = await getChatAdmins(msg.chat) // get list of admins
 
-        if (messageSenderIsAdmin(admins, msg)) { 
+        if (messageSenderIsAdmin(admins, msg)) {
+            mongoNowConfigatates.updateOne({ user: msg.from.id }, { $set: { group: msg.chat, date: new Date() } }, { upsert: true })
+
             let alertMsg = ""
             let myAdminRights = admins.filter(x => x.user.id == me.id)[0]
             let enoughtRights = myAdminRights && myAdminRights.can_delete_messages && myAdminRights.can_restrict_members
@@ -91,6 +97,26 @@ bot.onText(/\/config/, async function (msg, match) { // request configuration ke
     }
 })
 
+bot.onText(/^\/set_hello(\s(.*))?$/, async (msg, match) => {
+    if (msg.chat.type === 'private') {
+
+        const message = match[2]
+
+        const currentlyEdit = await mongoNowConfigatates.findOne({ user: msg.from.id, date: { $gte: secondsAgo(600) } }).catch(e => console.dir)
+        const group = currentlyEdit && currentlyEdit.group
+        console.dir(group)
+        if (group) {
+            mongoGroups.updateOne({ groupId: group.id }, { $set: { helloMsgString: message } })
+            if (message)
+                bot.sendMessage(msg.chat.id, `_Hello message for group_ *${group.title}* _set to:_\n${message}`, { parse_mode: "markdown" })
+            else
+                bot.sendMessage(msg.chat.id, `_You set hello message to default value. To disable it please switch button on config keyboard_`, { parse_mode: "markdown" })
+        }
+        else
+            bot.sendMessage(msg.chat.id, `You are currently no editing any groups. Send \`/config\` to group chat to start configure this group.`, { parse_mode: "markdown" })
+    }
+})
+
 // Bot reaction on commands "/start"
 bot.onText(/\/start/, function (msg) {
     bot.sendMessage(msg.from.id, "Well done! You can use /help command to get some documentation.")
@@ -98,31 +124,46 @@ bot.onText(/\/start/, function (msg) {
 
 // Bot reaction on commands "/help"
 bot.onText(/\/help/, function (msg) {
-    let text = `*IMPORTANT*
+    const text = `*IMPORTANT*
 This bot can work only in supergroups for now!
 
 To configure bot in your group you need:
     1) Invite bot to your group.
-    2) Promote him to admin (check all except "add new admin")
+    2) Promote him to admin (enable "Delete messages" and "Ban users").
     3) Configure bot by sending /config right into your group (message will disappear immediately).
 
 *Why should you send a message to the group but not private?*
 This is telegram limitation. In situation when you have couple of groups and want to configure one, bot cannot know which group you want to configure. So you need explicitly point it. Message will appear for moment, it wont interrupt chat members discussion.
+
+*Available commands:*
+/help
+Show this message
+
+/set\\_hello %your message%
+Sets hello message for new chat members. You can use \`$name\` placeholder, it will be replaced with new participiant name. 
+Call command without message to set default one. Make sure "Hello message for new members" switch are enabled.
 `
 
-    bot.sendMessage(msg.from.id, text, { // and sent it
+    bot.sendMessage(msg.from.id, text, {
         parse_mode: "markdown"
     })
 })
 
-// Bot reaction on message
+// Bot reaction on any message
 bot.on('message', async (msg) => {
     if (msg.chat.type !== 'supergroup') return //we can delete messages only from supergroups 
 
     let cfg = await mongoGroups.findOne({ groupId: msg.chat.id }) // load group configuration
 
-    if (cfg && cfg.helloMsg && msg.new_chat_member) { // print hello message
-        bot.sendMessage(msg.chat.id, `Thanks for joining, *${msg.new_chat_member.first_name}*. Please follow the guidelines of the group and enjoy your time`, { parse_mode: "markdown" })
+    if (cfg && cfg.helloMsg && msg.new_chat_member) { // print hello message if enabled
+        var helloMsg = prepareHelloMessage(cfg, msg)
+        let messageOptions = { parse_mode: "markdown" }
+
+        if (!cfg.joinedMsg) { // reply to service 'joined' mesasge if there is no enabled option to delete those messages
+            messageOptions.reply_to_message_id = msg.message_id
+        }
+
+        bot.sendMessage(msg.chat.id, helloMsg, messageOptions)
     }
 
     mongoMessages.insertOne(messageEntry(msg.from.id, msg.chat.id))
@@ -133,8 +174,8 @@ bot.on('message', async (msg) => {
         if (filterReducer(msg, cfg)) { // check filters for message
             bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { })
         } else { // check if spam
-            if (cfg.restrictSpam) // check antispam enabled in config
-                await checkIfSpam(msg)
+            if (cfg.restrictSpam) // check antispam is enabled in config
+                checkIfSpam(msg)
         }
     }
 
@@ -161,7 +202,7 @@ bot.on('callback_query', async query => {
 })
 
 async function checkIfSpam(msg) {
-    let entry = messageEntry(msg.from.id, msg.chat.id, { $gte: new Date((new Date()).getTime() - 10 * 1000) })
+    let entry = messageEntry(msg.from.id, msg.chat.id, { $gte: secondsAgo(10) })
     let count = await mongoMessages.count(entry)
 
     if (count > 5)
@@ -227,3 +268,14 @@ async function getChatAdmins(chat) {
 function messageSenderIsAdmin(admins, msg) {
     return admins.filter(x => x.user.id == msg.from.id).length > 0;
 }
+function secondsAgo(secs) {
+    return new Date((new Date()).getTime() - secs * 1000);
+}
+
+function prepareHelloMessage(cfg, msg) {
+    let message = ''
+    const name = (msg.new_chat_participant.first_name || '' + msg.new_chat_participant.last_name || '').trim() || msg.new_chat_participant.username
+    message = cfg.helloMsgString || `Thanks for joining, *$name*.Please follow the guidelines of the group and enjoy your time`;
+    return message.replace("$name", name)
+}
+
