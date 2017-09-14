@@ -41,22 +41,21 @@ let me = {}
 MongoClient.connect(mongoConection)
     .then(function (db) { // first - connect to database
         mongoGroups = db.collection('groups')
-        mongoMessages = db.collection('messages')
+        mongoMessages = db.collection('messagesLog')
         mongoNowConfigatates = db.collection('nowConfigurates')
-        mongoMessages.dropIndex('postedDate_1').then(() => {
-            mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 }) //store messages for 60 days
-                .then(async () => {
-                    let url = process.env.APP_URL
-                    me = await bot.getMe()
-                    if (url) {
-                        console.log('hookin')
-                        bot.setWebHook(`${url}/bot${token}`)
-                    } else {
-                        console.log('pollin')
-                        bot.startPolling()
-                    }
-                })
-        })
+
+        mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 }) //store messages for 60 days
+            .then(async () => {
+                let url = process.env.APP_URL
+                me = await bot.getMe()
+                if (url) {
+                    console.log('hookin')
+                    bot.setWebHook(`${url}/bot${token}`)
+                } else {
+                    console.log('pollin')
+                    bot.startPolling()
+                }
+            })
     })
     .catch((e) => {
         console.log(`FATAL :: ${e}`)
@@ -153,6 +152,7 @@ Call command without message to set default one. Make sure "Hello message for ne
 bot.on('message', async (msg) => {
     if (msg.chat.type !== 'supergroup') return //we can delete messages only from supergroups 
 
+    mongoMessages.insertOne({ postedDate: new Date(), message: msg })
     let cfg = await mongoGroups.findOne({ groupId: msg.chat.id }) // load group configuration
 
     if (cfg && cfg.helloMsg && msg.new_chat_member) { // print hello message if enabled
@@ -166,8 +166,6 @@ bot.on('message', async (msg) => {
         bot.sendMessage(msg.chat.id, helloMsg, messageOptions)
     }
 
-    mongoMessages.insertOne(messageEntry(msg.from.id, msg.chat.id))
-
     let admins = await getChatAdmins(msg.chat) // get list of admins
 
     if (!messageSenderIsAdmin(admins, msg)) { // check message legitimacy only if sender is not group admin
@@ -178,7 +176,6 @@ bot.on('message', async (msg) => {
                 checkIfSpam(msg)
         }
     }
-
     console.dir(msg) // debug output
 })
 
@@ -202,10 +199,10 @@ bot.on('callback_query', async query => {
 })
 
 async function checkIfSpam(msg) {
-    let entry = messageEntry(msg.from.id, msg.chat.id, { $gte: secondsAgo(10) })
+    let entry = { postedDate: { $gte: secondsAgo(30) }, "message.from.id": msg.from.id, "message.chat.id": msg.chat.id }
     let count = await mongoMessages.count(entry)
 
-    if (count > 5)
+    if (count > 10)
         restrictSpammer(msg)
 }
 
@@ -254,13 +251,6 @@ function restrictSpammer(msg) {
     bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { })
 }
 
-function messageEntry(userid, groupId, date) {
-    return {
-        postedDate: date || new Date(),
-        userId: userid,
-        groupId: groupId
-    }
-}
 async function getChatAdmins(chat) {
     return await bot.getChatAdministrators(chat.id) // get list of admins
 }
