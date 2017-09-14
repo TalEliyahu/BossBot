@@ -60,20 +60,16 @@ MongoClient.connect(mongoConection)
 
 // Bot reaction on commands "/config"
 bot.onText(/\/config/, async function (msg, match) { // request configuration keyboard to PM
-    //console.dir(me)
     if (msg.chat.type === 'supergroup') {
 
         bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { }) // remove message with /cmd in supergroups
 
-        let admins = await bot.getChatAdministrators(msg.chat.id) // get list of admins
-        console.dir(admins)
-        console.dir(me)
-        if (admins.filter(x => x.user.id == msg.from.id).length > 0) { // if sender is admin
-            let alertMsg = ""
-            let myAdminRights = admins.filter(x => x.user.id == me.id).length > 0 ? admins.filter(x => x.user.id == me.id)[0] : null
-            let enoughtRights = myAdminRights && myAdminRights.can_delete_messages && myAdminRights.can_restrict_members
+        let admins = await getChatAdmins(msg.chat) // get list of admins
 
-            //console.dir(msg)
+        if (messageSenderIsAdmin(admins, msg)) { 
+            let alertMsg = ""
+            let myAdminRights = admins.filter(x => x.user.id == me.id)[0]
+            let enoughtRights = myAdminRights && myAdminRights.can_delete_messages && myAdminRights.can_restrict_members
 
             if (!enoughtRights) {
                 alertMsg = "_Bot have not enougth rights in this group! Promote him to admin, grant 'delete messages' and 'ban users' rights!_"
@@ -95,10 +91,12 @@ bot.onText(/\/config/, async function (msg, match) { // request configuration ke
     }
 })
 
+// Bot reaction on commands "/start"
 bot.onText(/\/start/, function (msg) {
     bot.sendMessage(msg.from.id, "Well done! You can use /help command to get some documentation.")
 })
 
+// Bot reaction on commands "/help"
 bot.onText(/\/help/, function (msg) {
     let text = `*IMPORTANT*
 This bot can work only in supergroups for now!
@@ -117,22 +115,27 @@ This is telegram limitation. In situation when you have couple of groups and wan
     })
 })
 
-// Bot messages monitoring
+// Bot reaction on message
 bot.on('message', async (msg) => {
     if (msg.chat.type !== 'supergroup') return //we can delete messages only from supergroups 
 
     let cfg = await mongoGroups.findOne({ groupId: msg.chat.id }) // load group configuration
-    
+
     if (cfg && cfg.helloMsg && msg.new_chat_member) { // print hello message
         bot.sendMessage(msg.chat.id, `Thanks for joining, *${msg.new_chat_member.first_name}*. Please follow the guidelines of the group and enjoy your time`, { parse_mode: "markdown" })
     }
 
     mongoMessages.insertOne(messageEntry(msg.from.id, msg.chat.id))
-    if (filterReducer(msg, cfg)) { // check filters for message
-        bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { })
-    } else { // check if spam
-        if (cfg.restrictSpam) // check antispam enabled in config
-            await checkIfSpam(msg)
+
+    let admins = await getChatAdmins(msg.chat) // get list of admins
+
+    if (!messageSenderIsAdmin(admins, msg)) { // check message legitimacy only if sender is not group admin
+        if (filterReducer(msg, cfg)) { // check filters for message
+            bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { })
+        } else { // check if spam
+            if (cfg.restrictSpam) // check antispam enabled in config
+                await checkIfSpam(msg)
+        }
     }
 
     console.dir(msg) // debug output
@@ -216,4 +219,11 @@ function messageEntry(userid, groupId, date) {
         userId: userid,
         groupId: groupId
     }
+}
+async function getChatAdmins(chat) {
+    return await bot.getChatAdministrators(chat.id) // get list of admins
+}
+
+function messageSenderIsAdmin(admins, msg) {
+    return admins.filter(x => x.user.id == msg.from.id).length > 0;
 }
