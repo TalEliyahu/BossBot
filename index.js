@@ -7,7 +7,7 @@ const TelegramBot = require('node-telegram-bot-api')
 const groupConfig = require('./lib/filters').groupConfig
 const filterReducer = require('./lib/filters').filterReducer
 
-let mongoGroups, mongoMessages, mongoNowConfigatates
+let mongoGroups, mongoMessages, mongoNowConfigatates, mongoActionLog
 
 const token = process.env.BOT_TOKEN || require('./config').bot_token
 const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo_connection
@@ -15,6 +15,22 @@ const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo
 const switcher = function (x) {
     if (x) return "✔️"
     return "❌"
+}
+const actionTypes = {
+    command: "COMMAND",
+    deleteConfigMessage: "DELETE_CONFIG_MESSAGE",
+    deleteFilteredMessage: "DELETE_FILTERED_MESAGE",
+    groupConfiguratiuon: "GROUP_CONFIGURATION",
+    configWithNotEnoughtRights: "TRYING_TO_CONFIGURE_GROUP_WITH_NOT_ENOUGHT_RIGHTS",
+    tryingConfigureInPrivate: "SENDING_CONFIG_PM",
+    tryingConfigureNormalGroup: "TRYING_TO_CONFIGURE_NORMAL_GROUP",
+    setHello: "SET_HELLO_MESSAGE",
+    expiredConfigSession: "CONFIG_SESSION_EXPIRED",
+    start: "START_COMMAND",
+    help: "HELP_COMMAND",
+    hello: "HELLO_MESSAGE",
+    keyboardCallback: "KEYBOARD_CALLBACK",
+    restrictingSpammer: "RESTRICTING_SPAMMER"
 }
 
 let options = {}
@@ -43,6 +59,7 @@ MongoClient.connect(mongoConection)
         mongoGroups = db.collection('groups')
         mongoMessages = db.collection('messagesLog')
         mongoNowConfigatates = db.collection('nowConfigurates')
+        mongoActionLog = db.collection('actionLog')
 
         mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 }) //store messages for 60 days
             .then(async () => {
@@ -63,8 +80,10 @@ MongoClient.connect(mongoConection)
 
 // Bot reaction on commands "/config"
 bot.onText(/\/config/, async function (msg, match) { // request configuration keyboard to PM
-    if (msg.chat.type === 'supergroup') {
+    log(actionTypes.command, msg)
 
+    if (msg.chat.type === 'supergroup') {
+        log(actionTypes.deleteConfigMessage, msg)
         bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { }) // remove message with /cmd in supergroups
 
         let admins = await getChatAdmins(msg.chat) // get list of admins
@@ -77,11 +96,13 @@ bot.onText(/\/config/, async function (msg, match) { // request configuration ke
             let enoughtRights = myAdminRights && myAdminRights.can_delete_messages && myAdminRights.can_restrict_members
 
             if (!enoughtRights) {
+                log(actionTypes.configWithNotEnoughtRights, msg)
                 alertMsg = "_Bot have not enougth rights in this group! Promote him to admin, grant 'delete messages' and 'ban users' rights!_"
                 bot.sendMessage(msg.from.id, `${alertMsg}`, {
                     parse_mode: "markdown",
                 })
             } else {
+                log(actionTypes.groupConfiguratiuon, msg)
                 let kbd = await getConfigKeyboard(msg.chat.id) // prepare keyboard
                 bot.sendMessage(msg.from.id, `*${msg.chat.title}* configuration`, {
                     parse_mode: "markdown",
@@ -90,39 +111,45 @@ bot.onText(/\/config/, async function (msg, match) { // request configuration ke
             }
         }
     } else if (msg.chat.type === 'private') {
+        log(actionTypes.tryingConfigureInPrivate, msg)
         bot.sendMessage(msg.chat.id, "You sould use this command in supergroups that you want to configure").catch(() => { })
     } else if (msg.chat.type === 'group') {
+        log(actionTypes.tryingConfigureNormalGroup, msg)
         bot.sendMessage(msg.from.id, "Normal groups are not supported yet. Upgrade this group to supergroup first!").catch(() => { })
     }
 })
 
 bot.onText(/^\/set_hello(\s(.*))?$/, async (msg, match) => {
     if (msg.chat.type === 'private') {
-
         const message = match[2]
 
         const currentlyEdit = await mongoNowConfigatates.findOne({ user: msg.from.id, date: { $gte: secondsAgo(600) } }).catch(e => console.dir)
         const group = currentlyEdit && currentlyEdit.group
         console.dir(group)
         if (group) {
+            log(actionTypes.setHello, msg)
             mongoGroups.updateOne({ groupId: group.id }, { $set: { helloMsgString: message } })
             if (message)
                 bot.sendMessage(msg.chat.id, `_Hello message for group_ *${group.title}* _set to:_\n${message}`, { parse_mode: "markdown" })
             else
                 bot.sendMessage(msg.chat.id, `_You set hello message to default value. To disable it please switch button on config keyboard_`, { parse_mode: "markdown" })
         }
-        else
+        else{
+            log(actionTypes.expiredConfigSession, msg)            
             bot.sendMessage(msg.chat.id, `You are currently no editing any groups. Send \`/config\` to group chat to start configure this group.`, { parse_mode: "markdown" })
+        }
     }
 })
 
 // Bot reaction on commands "/start"
 bot.onText(/\/start/, function (msg) {
+    log(actionTypes.start, msg)
     bot.sendMessage(msg.from.id, "Well done! You can use /help command to get some documentation.")
 })
 
 // Bot reaction on commands "/help"
 bot.onText(/\/help/, function (msg) {
+    log(actionTypes.help, msg)
     const text = `*IMPORTANT*
 This bot can work only in supergroups for now!
 
@@ -156,6 +183,7 @@ bot.on('message', async (msg) => {
     let cfg = await mongoGroups.findOne({ groupId: msg.chat.id }) // load group configuration
 
     if (cfg && cfg.helloMsg && msg.new_chat_member) { // print hello message if enabled
+        log(actionTypes.hello, msg)
         var helloMsg = prepareHelloMessage(cfg, msg)
         let messageOptions = { parse_mode: "markdown" }
 
@@ -170,6 +198,7 @@ bot.on('message', async (msg) => {
 
     if (!messageSenderIsAdmin(admins, msg)) { // check message legitimacy only if sender is not group admin
         if (filterReducer(msg, cfg)) { // check filters for message
+            log(actionTypes.deleteFilteredMessage, msg)
             bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { })
         } else { // check if spam
             if (cfg.restrictSpam) // check antispam is enabled in config
@@ -181,6 +210,7 @@ bot.on('message', async (msg) => {
 
 // Buttons responce in menu
 bot.on('callback_query', async query => {
+    log(actionTypes.keyboardCallback, query)
     let groupId = Number(query.data.split("#")[0])
     let prop = query.data.split("#")[1] // get info from button
     let g = await mongoGroups.findOne({ groupId: groupId })
@@ -217,6 +247,9 @@ async function getConfigKeyboard(chatId) { // prepare config keyboard
     }
 }
 
+function log(eventType, payload) {
+    mongoActionLog.insertOne({ actionDate: new Date(), eventType, payload })
+}
 // Return keyboard preset
 function getSetOfKeys(groupConfig) {
     return {
@@ -248,6 +281,7 @@ function getSetOfKeys(groupConfig) {
 }
 
 function restrictSpammer(msg) {
+    log(actionTypes.restrictingSpammer, msg)
     bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { })
 }
 
