@@ -30,7 +30,8 @@ const actionTypes = {
     help: "HELP_COMMAND",
     hello: "HELLO_MESSAGE",
     keyboardCallback: "KEYBOARD_CALLBACK",
-    restrictingSpammer: "RESTRICTING_SPAMMER"
+    restrictingSpammer: "RESTRICTING_SPAMMER",
+    log: "VIEWING_LOG"
 }
 
 let options = {}
@@ -123,7 +124,7 @@ bot.onText(/^\/set_hello(\s(.*))?$/, async (msg, match) => {
     if (msg.chat.type === 'private') {
         const message = match[2]
 
-        const currentlyEdit = await mongoNowConfigatates.findOne({ user: msg.from.id, date: { $gte: secondsAgo(600) } }).catch(e => console.dir)
+        const currentlyEdit = await getGroupThatUserCurrentlyConfigures(msg)
         const group = currentlyEdit && currentlyEdit.group
         console.dir(group)
         if (group) {
@@ -134,8 +135,8 @@ bot.onText(/^\/set_hello(\s(.*))?$/, async (msg, match) => {
             else
                 bot.sendMessage(msg.chat.id, `_You set hello message to default value. To disable it please switch button on config keyboard_`, { parse_mode: "markdown" })
         }
-        else{
-            log(actionTypes.expiredConfigSession, msg)            
+        else {
+            log(actionTypes.expiredConfigSession, msg)
             bot.sendMessage(msg.chat.id, `You are currently no editing any groups. Send \`/config\` to group chat to start configure this group.`, { parse_mode: "markdown" })
         }
     }
@@ -145,6 +146,24 @@ bot.onText(/^\/set_hello(\s(.*))?$/, async (msg, match) => {
 bot.onText(/\/start/, function (msg) {
     log(actionTypes.start, msg)
     bot.sendMessage(msg.from.id, "Well done! You can use /help command to get some documentation.")
+})
+
+bot.onText(/\/log/, async function (msg) {
+    const currentlyEdit = await getGroupThatUserCurrentlyConfigures(msg)
+    const group = currentlyEdit && currentlyEdit.group
+    if(!group){
+        log(actionTypes.expiredConfigSession, msg)
+        bot.sendMessage(msg.from.id, `You are currently no editing any groups. Send \`/config\` to group chat to start configure this group.`, { parse_mode: "markdown" })
+    }
+    log(actionTypes.log, msg)
+    mongoActionLog.find({ actionDate: { $gte: secondsAgo(60 * 60 * 48) }, "payload.chat.id": group.id }).toArray((e, docs) => {
+        if (e) {
+            console.log(e)
+            return
+        }
+        const message = docs.map(x => `${x.eventType} :: ${x.payload.from.first_name || x.payload.from.username} :: ${x.payload.text}`).join('\n')
+        bot.sendMessage(msg.from.id, message)
+    })
 })
 
 // Bot reaction on commands "/help"
@@ -301,5 +320,9 @@ function prepareHelloMessage(cfg, msg) {
     const name = (msg.new_chat_participant.first_name || '' + msg.new_chat_participant.last_name || '').trim() || msg.new_chat_participant.username
     message = cfg.helloMsgString || `Thanks for joining, *$name*.Please follow the guidelines of the group and enjoy your time`;
     return message.replace("$name", name)
+}
+
+async function getGroupThatUserCurrentlyConfigures(msg) {
+    return await mongoNowConfigatates.findOne({ user: msg.from.id, date: { $gte: secondsAgo(600) } }).catch(e => console.dir);
 }
 
