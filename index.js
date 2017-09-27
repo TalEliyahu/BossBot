@@ -7,7 +7,7 @@ const TelegramBot = require('node-telegram-bot-api')
 const groupConfig = require('./lib/filters').groupConfig
 const filterReducer = require('./lib/filters').filterReducer
 
-let mongoGroups, mongoMessages, mongoNowConfigatates, mongoActionLog
+let mongoGroups, mongoMessages, mongoNowConfigatates, mongoActionLog, mongoWarns
 
 const token = process.env.BOT_TOKEN || require('./config').bot_token
 const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo_connection
@@ -61,6 +61,7 @@ MongoClient.connect(mongoConection)
         mongoMessages = db.collection('messagesLog')
         mongoNowConfigatates = db.collection('nowConfigurates')
         mongoActionLog = db.collection('actionLog')
+        mongoWarns = db.collection('warns')
 
         mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 }) //store messages for 60 days
             .then(async () => {
@@ -120,13 +121,42 @@ bot.onText(/\/config/, async function (msg, match) { // request configuration ke
     }
 })
 
+bot.onText(/^\/kick/, async msg => {
+    await kickByReply(msg);
+})
+
+bot.onText(/\/ban/, async msg => {
+    await banByReply(msg);
+})
+
+bot.onText(/\/warn/, async msg => {
+    const maxWarn = 3
+    let admins = await getChatAdmins(msg.chat)
+    if (messageSenderIsAdmin(admins, msg) && !messageSenderIsAdmin(admins, msg.reply_to_message)) {
+        await mongoWarns.updateOne({ user: msg.reply_to_message.from.id, group: msg.chat.id }, { $inc: { warn: 1 } }, { upsert: true })
+        let warns = (await mongoWarns.findOne({ user: msg.reply_to_message.from.id, group: msg.chat.id })).warn
+        if (warns >= maxWarn) {
+            kickByReply(msg)
+            mongoWarns.updateOne({ user: msg.reply_to_message.from.id, group: msg.chat.id }, { $set: { warn: 0 } })
+        }
+    }
+})
+
+bot.onText(/\/unwarn/, async msg => {
+    const maxWarn = 3
+    let admins = await getChatAdmins(msg.chat)
+    if (messageSenderIsAdmin(admins, msg)) {
+        mongoWarns.updateOne({ user: msg.reply_to_message.from.id, group: msg.chat.id }, { $set: { warn: 0 } })
+    }
+})
+
 bot.onText(/^\/set_hello(\s(.*))?$/, async (msg, match) => {
     if (msg.chat.type === 'private') {
         const message = match[2]
 
         const currentlyEdit = await getGroupThatUserCurrentlyConfigures(msg)
         const group = currentlyEdit && currentlyEdit.group
-        console.dir(group)
+        //console.dir(group)
         if (group) {
             log(actionTypes.setHello, msg)
             mongoGroups.updateOne({ groupId: group.id }, { $set: { helloMsgString: message } })
@@ -151,7 +181,7 @@ bot.onText(/\/start/, function (msg) {
 bot.onText(/\/log/, async function (msg) {
     const currentlyEdit = await getGroupThatUserCurrentlyConfigures(msg)
     const group = currentlyEdit && currentlyEdit.group
-    if(!group){
+    if (!group) {
         log(actionTypes.expiredConfigSession, msg)
         bot.sendMessage(msg.from.id, `You are currently no editing any groups. Send \`/config\` to group chat to start configure this group.`, { parse_mode: "markdown" })
     }
@@ -224,7 +254,7 @@ bot.on('message', async (msg) => {
                 checkIfSpam(msg)
         }
     }
-    console.dir(msg) // debug output
+    //console.dir(msg) // debug output
 })
 
 // Buttons responce in menu
@@ -309,8 +339,11 @@ async function getChatAdmins(chat) {
 }
 
 function messageSenderIsAdmin(admins, msg) {
-    return admins.filter(x => x.user.id == msg.from.id).length > 0;
+    const res = admins.filter(x => x.user.id == msg.from.id).length > 0
+    //console.log(res)
+    return res
 }
+
 function secondsAgo(secs) {
     return new Date((new Date()).getTime() - secs * 1000);
 }
@@ -324,5 +357,20 @@ function prepareHelloMessage(cfg, msg) {
 
 async function getGroupThatUserCurrentlyConfigures(msg) {
     return await mongoNowConfigatates.findOne({ user: msg.from.id, date: { $gte: secondsAgo(600) } }).catch(e => console.dir);
+}
+
+async function kickByReply(msg) {
+    let admins = await getChatAdmins(msg.chat);
+    if (messageSenderIsAdmin(admins, msg) && !messageSenderIsAdmin(admins, msg.reply_to_message)) {
+        await bot.kickChatMember(msg.chat.id, msg.reply_to_message.from.id);
+        bot.unbanChatMember(msg.chat.id, msg.reply_to_message.from.id);
+    }
+}
+
+async function banByReply(msg) {
+    let admins = await getChatAdmins(msg.chat);
+    if (messageSenderIsAdmin(admins, msg) && !messageSenderIsAdmin(admins, msg.reply_to_message)) {
+        bot.kickChatMember(msg.chat.id, msg.reply_to_message.from.id);
+    }
 }
 
