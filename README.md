@@ -58,6 +58,20 @@ If enabled, bot will delete all mesages with commands, e.g. "`/config`"
 ### Restrict spam
 If enabled, bot will delete messages that user sends too frequently. Rules and type of restriction will be configurable in future releases.
 
+## Chat commands
+`/config` - start to configure current group.
 
+`/kick` - removes user from chat. Need to be written in a reply to user you want to restrict.
+
+`/ban` - removes and add user to blocklist. Need to be written in a reply to user you want to restrict.
+
+`/warn` - warns user about unacceptable behavior. Increases "warns" counter for user. If counter reach 3 - user get banned. Need to be written in a reply to user you want to restrict.
+
+`/unwarn` - clears "warns" counter. Need to be written in a reply.
+
+## Bot command
+`/set_hello %%%` - sets hello message for new users. Message can have placeholder `$name`. You can call `/set_hello` without message to set default message for current group. To disable Hello message use configuration keyboard.
+
+`/help` - show help message.
 ## Contibution
 You are free to help us to implement new features that described in issues. Please, make PRs into `develop` branch.
