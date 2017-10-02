@@ -3,19 +3,11 @@ const MongoClient = require('mongodb').MongoClient
 const Mongo = require('mongodb')
 const TelegramBot = require('node-telegram-bot-api')
 const MongoCollections = require('./lib/MongoCollections')
-// Import
-//const config = require('./config')
-// Import filter functions
-
 const filterReducer = require('./lib/filters').filterReducer
 const Command = require("./lib/commands")
 const CommonFunctions = require("./lib/commonFunctions")
-
-
-
 const token = process.env.BOT_TOKEN || require('./config').bot_token
 const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo_connection
-
 
 const actionTypes = {
     command: "COMMAND",
@@ -56,8 +48,7 @@ else {
 const bot = new TelegramBot(token, options)
 
 const mongoCollections = new MongoCollections()
-//let me = {}
-// Load databases and then start bot
+
 MongoClient.connect(mongoConection)
     .then(function (db) { // first - connect to database
         mongoCollections.mongoGroups = db.collection('groups')
@@ -87,9 +78,9 @@ MongoClient.connect(mongoConection)
 const command = new Command(log, actionTypes, bot, mongoCollections)
 const commonFunctions = new CommonFunctions(bot)
 
-
 subscribeToBotEvents();
 
+//check if user sends messages too frequently
 async function checkIfSpam(msg) {
     let entry = { postedDate: { $gte: commonFunctions.secondsAgo(30) }, "message.from.id": msg.from.id, "message.chat.id": msg.chat.id }
     let count = await mongoCollections.mongoMessages.count(entry)
@@ -107,9 +98,10 @@ function restrictSpammer(msg) {
     bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { })
 }
 
+//create and format hello message
 function prepareHelloMessage(cfg, msg) {
     let message = ''
-    const name = (msg.new_chat_participant.first_name || '' + msg.new_chat_participant.last_name || '').trim() || msg.new_chat_participant.username
+    const name = (msg.new_chat_participant.first_name || "" + ' ' + msg.new_chat_participant.last_name || '').trim() || msg.new_chat_participant.username
     message = cfg.helloMsgString || `Thanks for joining, *$name*.Please follow the guidelines of the group and enjoy your time`;
     return message.replace("$name", name)
 }
@@ -129,6 +121,7 @@ async function banByReply(msg) {
     }
 }
 
+//check if message need to be deleted according on filters
 async function tryFilterMessage(msg) {
     mongoCollections.mongoMessages.insertOne({ postedDate: new Date(), message: msg });
     let cfg = await mongoCollections.mongoGroups.findOne({ groupId: msg.chat.id }); // load group configuration
@@ -154,6 +147,7 @@ async function tryFilterMessage(msg) {
     }
 }
 
+//prepair bot to interact with users
 function subscribeToBotEvents() {
     bot.onText(/\/config/, async function (msg) {
         await command.configCommand(msg);
