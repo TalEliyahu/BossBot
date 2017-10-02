@@ -135,16 +135,13 @@ async function tryFilterMessage(msg) {
         bot.sendMessage(msg.chat.id, helloMsg, messageOptions);
     }
     let admins = await commonFunctions.getChatAdmins(msg.chat); // get list of admins
-    if (!commonFunctions.messageSenderIsAdmin(admins, msg)) {
-        if (filterReducer(msg, cfg)) {
-            log(actionTypes.deleteFilteredMessage, msg);
-            bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { });
-        }
-        else {
-            if (cfg.restrictSpam)
-                checkIfSpam(msg);
-        }
+    if (filterReducer(msg, cfg, admins)) {
+        log(actionTypes.deleteFilteredMessage, msg);
+        bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { });
     }
+    if (!commonFunctions.messageSenderIsAdmin(admins, msg))
+        if (cfg.restrictSpam)
+            checkIfSpam(msg);
 }
 
 //prepair bot to interact with users
