@@ -56,6 +56,7 @@ MongoClient.connect(mongoConection)
         mongoCollections.mongoNowConfigatates = db.collection('nowConfigurates')
         mongoCollections.mongoActionLog = db.collection('actionLog')
         mongoCollections.mongoWarns = db.collection('warns')
+        mongoCollections.mongoWhiteList = db.collection('mongoWhiteList');
 
         mongoCollections.mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 }) //store messages for 60 days
             .then(async () => {
@@ -171,6 +172,14 @@ function subscribeToBotEvents() {
     bot.onText(/\/log/, async function (msg) {
         await command.logCommand(msg);
     });
+    bot.onText(
+        /(\/whitelist|\/wl)(\s.*)?$/,
+        (msg, match) => command.whiteList(msg, match[2])
+    );
+    bot.onText(
+        /(\/unwhitelist|\/unwl)(\s.*)?$/,
+        (msg, match)  => command.unWhiteList(msg, match[2])
+    );
     // Bot reaction on commands "/help"
     bot.onText(/\/help/, function (msg) {
         command.helpCommand(msg);
