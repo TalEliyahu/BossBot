@@ -24,7 +24,12 @@ const actionTypes = {
     hello: "HELLO_MESSAGE",
     keyboardCallback: "KEYBOARD_CALLBACK",
     restrictingSpammer: "RESTRICTING_SPAMMER",
-    log: "VIEWING_LOG"
+    log: "VIEWING_LOG",
+    whitelistView: "VIEWING_WHITELIST",
+    whitelistAdding: "ADDING_LINKS_TO_WHITELIST",
+    whitelistNoLinksProvided: "NO_LINKS_PROVIDED_TO_WHITELIST",
+    whitelistClear: "CLEAR_WHITELIST",
+    whitelistRemoveLinks: "REMOVE_LINKS_FROM_WHITELIST"
 }
 
 let options = {}
