@@ -189,6 +189,9 @@ function subscribeToBotEvents() {
     bot.onText(/\/help/, function (msg) {
         command.helpCommand(msg);
     });
+    bot.onText(/^\/max_length(\s(.*))?$/, async (msg, match) => {
+        command.maxLengthCommand(msg, match[2]);
+    });
     // Bot reaction on any message
     bot.on('message', async (msg) => {
         if (msg.chat.type !== 'supergroup')
