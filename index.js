@@ -8,6 +8,7 @@ const Command = require("./lib/commands")
 const CommonFunctions = require("./lib/commonFunctions")
 const token = process.env.BOT_TOKEN || require('./config').bot_token
 const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo_connection
+const api = require('./api/app');
 
 const actionTypes = {
     command: "COMMAND",
@@ -24,7 +25,12 @@ const actionTypes = {
     hello: "HELLO_MESSAGE",
     keyboardCallback: "KEYBOARD_CALLBACK",
     restrictingSpammer: "RESTRICTING_SPAMMER",
-    log: "VIEWING_LOG"
+    log: "VIEWING_LOG",
+    whitelistView: "VIEWING_WHITELIST",
+    whitelistAdding: "ADDING_LINKS_TO_WHITELIST",
+    whitelistNoLinksProvided: "NO_LINKS_PROVIDED_TO_WHITELIST",
+    whitelistClear: "CLEAR_WHITELIST",
+    whitelistRemoveLinks: "REMOVE_LINKS_FROM_WHITELIST"
 }
 
 let options = {}
@@ -184,6 +190,9 @@ function subscribeToBotEvents() {
     bot.onText(/\/help/, function (msg) {
         command.helpCommand(msg);
     });
+    bot.onText(/^\/max_length(\s(.*))?$/, async (msg, match) => {
+        command.maxLengthCommand(msg, match[2]);
+    });
     // Bot reaction on any message
     bot.on('message', async (msg) => {
         if (msg.chat.type !== 'supergroup')
@@ -196,3 +205,4 @@ function subscribeToBotEvents() {
     });
 }
 
+api.serve();
