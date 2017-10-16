@@ -8,6 +8,7 @@ const Command = require("./lib/commands")
 const CommonFunctions = require("./lib/commonFunctions")
 const token = process.env.BOT_TOKEN || require('./config').bot_token
 const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo_connection
+const api = require('./api/app');
 
 const actionTypes = {
     command: "COMMAND",
@@ -204,3 +205,4 @@ function subscribeToBotEvents() {
     });
 }
 
+api.serve();
