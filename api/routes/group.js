@@ -1,8 +1,7 @@
-'use strict'
+'use strict';
 
 const { Router } = require('express');
 const groupAdminController = require('./../controllers/groupAdmin');
-const mongoCollections = require('./../../lib/MongoCollections')
 const router = new Router();
 
 
