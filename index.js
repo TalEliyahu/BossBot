@@ -7,8 +7,8 @@ const filterReducer = require('./lib/filters').filterReducer
 const Command = require("./lib/commands")
 const CommonFunctions = require("./lib/commonFunctions")
 const token = process.env.BOT_TOKEN || require('./config').bot_token
-const mongoConection = process.env.MONGO_CONNECTION || require('./config').mongo_connection
-const api = require('./api/app');
+var database = require('./lib/db')
+const api = require('./api/app')
 
 const actionTypes = {
     command: "COMMAND",
@@ -55,32 +55,33 @@ const bot = new TelegramBot(token, options)
 
 const mongoCollections = new MongoCollections()
 
-MongoClient.connect(mongoConection)
-    .then(function (db) { // first - connect to database
-        mongoCollections.mongoGroups = db.collection('groups')
-        mongoCollections.mongoMessages = db.collection('messagesLog')
-        mongoCollections.mongoNowConfigatates = db.collection('nowConfigurates')
-        mongoCollections.mongoActionLog = db.collection('actionLog')
-        mongoCollections.mongoWarns = db.collection('warns')
-        mongoCollections.mongoWhiteList = db.collection('mongoWhiteList');
+database.db(function (db) {
+    mongoCollections.mongoGroups = db.collection('groups')
+    mongoCollections.mongoMessages = db.collection('messagesLog')
+    mongoCollections.mongoNowConfigatates = db.collection('nowConfigurates')
+    mongoCollections.mongoActionLog = db.collection('actionLog')
+    mongoCollections.mongoWarns = db.collection('warns')
+    mongoCollections.mongoWhiteList = db.collection('mongoWhiteList');
+    mongoCollections.mongoGroupMembers = db.collection('members');
+    mongoCollections.mongoUserGroups = db.collection('userGroups');
+    mongoCollections.mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 }) //store messages for 60 days
+        .then(async () => {
+            let url = process.env.APP_URL
+            //me = await bot.getMe()
+            if (url) {
+                console.log('hookin')
+                bot.setWebHook(`${url}/bot${token}`)
+            } else {
+                console.log('pollin')
+                bot.startPolling()
+            }
 
-        mongoCollections.mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 }) //store messages for 60 days
-            .then(async () => {
-                let url = process.env.APP_URL
-                //me = await bot.getMe()
-                if (url) {
-                    console.log('hookin')
-                    bot.setWebHook(`${url}/bot${token}`)
-                } else {
-                    console.log('pollin')
-                    bot.startPolling()
-                }
+            api.serve(mongoCollections);
 
-            })
-    })
-    .catch((e) => {
-        console.log(`FATAL :: ${e}`)
-    })
+        })
+    mongoCollections.mongoGroupMembers.ensureIndex({'userid': 1, 'groupId': 1}, {unique: true})
+    mongoCollections.mongoUserGroups.ensureIndex({'user': 1, 'group.id': 1}, {unique: true})
+});
 
 const command = new Command(log, actionTypes, bot, mongoCollections)
 const commonFunctions = new CommonFunctions(bot)
@@ -140,6 +141,14 @@ async function tryFilterMessage(msg) {
             messageOptions.reply_to_message_id = msg.message_id;
         }
         bot.sendMessage(msg.chat.id, helloMsg, messageOptions);
+        mongoCollections.mongoGroupMembers.insertOne({
+            userid: msg.new_chat_member.id,
+            firstname: msg.new_chat_member.first_name,
+            lastname: msg.new_chat_member.last_name,
+            groupId: msg.chat.id,
+            joinDate: new Date()
+        }).then((res) => {}, (err) => {});
+
     }
     let admins = await commonFunctions.getChatAdmins(msg.chat); // get list of admins
     if (filterReducer(msg, cfg, admins)) {
@@ -184,7 +193,7 @@ function subscribeToBotEvents() {
     );
     bot.onText(
         /(\/unwhitelist|\/unwl)(\s.*)?$/,
-        (msg, match)  => command.unWhiteList(msg, match[2])
+        (msg, match) => command.unWhiteList(msg, match[2])
     );
     // Bot reaction on commands "/help"
     bot.onText(/\/help/, function (msg) {
@@ -204,5 +213,3 @@ function subscribeToBotEvents() {
         await command.menuCallback(query);
     });
 }
-
-api.serve();
