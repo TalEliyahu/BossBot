@@ -14,9 +14,9 @@ const server = {
 const client = MTProto({ server, api })
 
 exports.login = function (req, res) {
-    var phone_number = req.body.phone_number;
-    var code = req.body.code;
-    var hash = req.body.hash;
+    let phone_number = req.body.phone_number;
+    let code = req.body.code;
+    let hash = req.body.hash;
     client('auth.signIn', {
         phone_number: phone_number,
         phone_code_hash: hash,
@@ -29,7 +29,7 @@ exports.login = function (req, res) {
 }
 
 exports.sendCode = function (req, res) {
-    var phone_number = req.body.phone;
+    let phone_number = req.body.phone;
     client('auth.sendCode', {
         phone_number: phone_number,
         current_number: false,
@@ -44,11 +44,11 @@ exports.sendCode = function (req, res) {
 }
 
 exports.signup = function (req, res) {
-    var phone_number = req.body.phone_number;
-    var first_name = req.body.first_name;
-    var last_name = req.body.last_name;
-    var code = req.body.code;
-    var hash = req.body.hash;
+    let phone_number = req.body.phone_number;
+    let first_name = req.body.first_name;
+    let last_name = req.body.last_name;
+    let code = req.body.code;
+    let hash = req.body.hash;
     client('auth.signUp', {
         phone_number: phone_number,
         phone_code_hash: hash,
@@ -63,8 +63,8 @@ exports.signup = function (req, res) {
 }
 
 exports.sendCall = function (req, res){
-    var phone_number = req.body.phone_number;
-    var hash = req.body.hash;
+    let phone_number = req.body.phone_number;
+    let hash = req.body.hash;
     client('auth.sendSms', {
         phone_number: phone_number,
         phone_code_hash: hash

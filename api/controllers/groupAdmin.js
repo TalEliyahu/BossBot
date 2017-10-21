@@ -1,10 +1,12 @@
-const mongodb = require ('mongodb');
+const mongodb = require('mongodb');
+const { userGroup } = require('./../schema/userGroup')
+const { messagesLog } = require('./../schema/message')
+const { member } = require('./../schema/member')
 
-
-exports.getGroups = (mongoCollections) => {
-    return (req, res) => {
-        user_id = parseInt(req.body.id);
-        mongoCollections.mongoUserGroups.aggregate([
+exports.getGroups = async (req, res) => {
+    user_id = parseInt(req.body.id);
+    try {
+        let result = await userGroup.aggregate([
             {
                 $match: {
                     user: user_id
@@ -30,26 +32,25 @@ exports.getGroups = (mongoCollections) => {
                 $project: {
                     group: 1,
                     date: 1,
-                    last_message: {$max: '$messages.postedDate'},
+                    last_message: { $max: '$messages.postedDate' },
                     members: { $size: "$members" }
                 }
             }
-        ], (err, result) => {
-            if (err)
-                res.status(500).send(err);
-            else res.send(result);
-        })
+        ])
+        res.send(result);
+    } catch (error) {
+        handleError(res, error)
     }
 }
 
-exports.getDashboardStats = (mongoCollections) => {
-    return (req, res) => {
-        user_id = parseInt(req.body.id);
-        let groups = 0;
-        let members = 0;
-        let messages = 0;
-        let actions = 0;
-        mongoCollections.mongoUserGroups.aggregate([
+exports.getDashboardStats = async (req, res) => {
+    user_id = parseInt(req.body.id);
+    let groups = 0;
+    let members = 0;
+    let messages = 0;
+    let actions = 0;
+    try {
+        result = await userGroup.aggregate([
             {
                 $match: {
                     user: user_id
@@ -60,30 +61,26 @@ exports.getDashboardStats = (mongoCollections) => {
                     group: "$group.id"
                 }
             }
-        ], (err, result) => {
-            if (err) res.status(500).send(err);
-            else {
-                groups = result.length;
-                let groupIds = result.map(x => { return x.group })
-                mongoCollections.mongoGroupMembers.find({ groupId: { $in: groupIds } }).toArray((err, result) => {
-                    if (err) res.status(500).send(err);
-                    members = result.length
-                    mongoCollections.mongoMessages.find({ "message.chat.id": { $in: groupIds } }).toArray((err, result) => {
-                        if (err) res.status(500).send(err);
-                        messages = result.filter(x => { return x.message.entities == null }).length
-                        actions = result.filter(x => { return x.message.entities != null }).length
-                        res.send({ "groups": groups, "members": members, "messages": messages, "actions": actions });
-                    });
-                })
-            }
-        })
+        ])
+        groups = result.length;
+        let groupIds = result.map(x => x.group)
+        result = await member.find({ groupId: { $in: groupIds } })
+        members = result.length
+        result = await messagesLog.find({ "message.chat.id": { $in: groupIds } })
+        result = result.map(o => o.toObject())
+        messages = result.filter(x => { return x.message.entities == null }).length
+        actions = result.filter(x => { return x.message.entities != null }).length
+        res.send({ "groups": groups, "members": members, "messages": messages, "actions": actions });
+
+    } catch (error) {
+        handleError(res, error)
     }
 }
 
-exports.getMessagesYearlyCount = (mongoCollections) => {
-    return (req, res) => {
-        user_id = parseInt(req.body.id);
-        mongoCollections.mongoUserGroups.aggregate([
+exports.getMessagesYearlyCount = async (req, res) => {
+    user_id = parseInt(req.body.id)
+    try {
+        let result = await userGroup.aggregate([
             {
                 $match: {
                     user: user_id
@@ -105,28 +102,29 @@ exports.getMessagesYearlyCount = (mongoCollections) => {
             },
             {
                 $project: {
-                    month: {"$month": '$messages.postedDate'},
-                    messageYear: {"$year": "$messages.postedDate"}
+                    month: { "$month": '$messages.postedDate' },
+                    messageYear: { "$year": "$messages.postedDate" }
                 }
             },
             {
                 $group: {
-                    _id: {month: "$month", year: "$messageYear"},
-                    messages: {$sum: 1}
+                    _id: { month: "$month", year: "$messageYear" },
+                    messages: { $sum: 1 }
                 }
             }
-        ], (err, result) => {
-            if (err) res.status(500).send(err);
-                res.send(result);
-        })
+        ])
+        res.send(result)
+    } catch (error) {
+        handleError(res, error)
     }
+
 }
 
-exports.getMessagesMonthlyCount = (mongoCollections) => {
-    return (req, res) => {
-        user_id = parseInt(req.body.id);
-        var month = (new Date()).getMonth() + 1;
-        mongoCollections.mongoUserGroups.aggregate([
+exports.getMessagesMonthlyCount = async (req, res) => {
+    user_id = parseInt(req.body.id);
+    let month = (new Date()).getMonth() + 1;
+    try {
+        let result = await userGroup.aggregate([
             {
                 $match: {
                     user: user_id
@@ -148,14 +146,14 @@ exports.getMessagesMonthlyCount = (mongoCollections) => {
             },
             {
                 $project: {
-                    day: {"$dayOfMonth": '$messages.postedDate'},
-                    messageMonth: {"$month": "$messages.postedDate"}
+                    day: { "$dayOfMonth": '$messages.postedDate' },
+                    messageMonth: { "$month": "$messages.postedDate" }
                 }
             },
             {
                 $group: {
-                    _id: {day: "$day", month: "$messageMonth"},
-                    messages: {$sum: 1}
+                    _id: { day: "$day", month: "$messageMonth" },
+                    messages: { $sum: 1 }
                 }
             },
             {
@@ -163,26 +161,22 @@ exports.getMessagesMonthlyCount = (mongoCollections) => {
                     '_id.month': month
                 }
             }
-        ], (err, result) => {
-            if (err) res.status(500).send(err);
-                res.send(result);
-        })
+        ])
+        res.send(result)
+    } catch (error) {
+        handleError(res, error)
     }
 }
 
-exports.getGroupStats = (mongoCollections) => {
-    return (req, res) => {
-        user_id = parseInt(req.body.id)
-        group_id = parseInt(req.body.group_id)
-        var members = 0;
-        var messages = 0;
-        var banned = 0;
-        var actions = 0;
-        mongoCollections.mongoUserGroups.aggregate([
+exports.getGroupStats = async (req, res) => {
+    user_id = parseInt(req.body.id)
+    group_id = parseInt(req.body.group_id)
+    try {
+        let result = await userGroup.aggregate([
             {
                 $match: {
                     "group.id": group_id,
-                    "user":  user_id
+                    "user": user_id
                 }
             },
             {
@@ -203,27 +197,29 @@ exports.getGroupStats = (mongoCollections) => {
             },
             {
                 $project: {
-                    members: {$size: "$members"},
-                    messages: {$size: "$messages"}
+                    members: { $size: "$members" },
+                    messages: { $size: "$messages" }
                 }
             }
-        ], (err, result) => {
-            if (err) res.status(500).send(err)
-            members = result[0].members;
-            messages = result[0].messages;
-            mongoCollections.mongoMessages.find({'message.chat.id': group_id}).toArray((err, result)=> {
-                if (err) res.status(500).send(err)
-                res.send({"actions": result.filter(x => x.message.entities != null).length, "members": members, "messages": messages})
-            })
-        });
-        
+        ]);
+        let members = result[0].members;
+        let messages = result[0].messages;
+        try {
+            result = await messagesLog.find({ 'message.chat.id': group_id })
+            result = result.map(o => o.toObject()) //Schema not pre-defined and dynamic nature
+            res.send({ "actions": result.filter(x => x.message.entities != null).length, "members": members, "messages": messages })
+        } catch (error) {
+            handleError(res, error)
+        }
+    } catch (error) {
+        handleError(res, error)
     }
 }
 
-exports.getGroupMessages = (mongoCollections) => {
-    return (req, res) => {
-        group_id = parseInt(req.body.group_id)
-        mongoCollections.mongoMessages.aggregate([
+exports.getGroupMessages = async (req, res) => {
+    group_id = parseInt(req.body.group_id)
+    try {
+        let result = await messagesLog.aggregate([
             {
                 $match: {
                     'message.chat.id': group_id
@@ -234,27 +230,27 @@ exports.getGroupMessages = (mongoCollections) => {
                     'postedDate': -1
                 }
             }
-        ], (err, result)=> {
-            if (err) res.status(500).send(err)
-            res.send(result)
-        });
+        ]);
+        res.send(result)
+    } catch (error) {
+        handleError(res, error)
     }
 }
 
-exports.getGroupMembers = (mongoCollections) => {
-    return (req, res) => {
-        group_id = parseInt(req.body.group_id);
-        mongoCollections.mongoGroupMembers.find({groupId: group_id}).toArray((err, result) => {
-            if (err) res.status(500).send(err)
-            res.send(result)
-        });
+exports.getGroupMembers = async (req, res) => {
+    group_id = parseInt(req.body.group_id);
+    try {
+        let result = await member.find({ groupId: group_id })
+        res.send(result)
+    } catch (error) {
+        handleError(res, error)
     }
 }
 
-exports.getGroupMessagesYearlyCount = (mongoCollections) => {
-    return (req, res) => {
-        group_id = parseInt(req.body.group_id);
-        mongoCollections.mongoMessages.aggregate([
+exports.getGroupMessagesYearlyCount = async (req, res) => {
+    let group_id = parseInt(req.body.group_id);
+    try {
+        let result = await messagesLog.aggregate([
             {
                 $match: {
                     'message.chat.id': group_id
@@ -262,28 +258,29 @@ exports.getGroupMessagesYearlyCount = (mongoCollections) => {
             },
             {
                 $project: {
-                    month: {"$month": '$postedDate'},
-                    messageYear: {"$year": "$postedDate"}
+                    month: { "$month": '$postedDate' },
+                    messageYear: { "$year": "$postedDate" }
                 }
             },
             {
                 $group: {
-                    _id: {month: "$month", year: "$messageYear"},
-                    messages: {$sum: 1}
+                    _id: { month: "$month", year: "$messageYear" },
+                    messages: { $sum: 1 }
                 }
             }
-        ], (err, result) => {
-            if (err) res.status(500).send(err);
-                res.send(result);
-        })
+        ])
+        res.send(result);
+    } catch (error) {
+        handleError(res, error)
     }
 }
 
-exports.getGroupMessagesMonthlyCount = (mongoCollections) => {
-    return (req, res) => {
-        group_id = parseInt(req.body.group_id);
-        var month = (new Date()).getMonth() + 1;
-        mongoCollections.mongoMessages.aggregate([
+
+exports.getGroupMessagesMonthlyCount = async (req, res) => {
+    group_id = parseInt(req.body.group_id);
+    let month = (new Date()).getMonth() + 1;
+    try {
+        let result = await messagesLog.aggregate([
             {
                 $match: {
                     'message.chat.id': group_id
@@ -291,14 +288,14 @@ exports.getGroupMessagesMonthlyCount = (mongoCollections) => {
             },
             {
                 $project: {
-                    day: {"$dayOfMonth": '$postedDate'},
-                    messageMonth: {"$month": "$postedDate"}
+                    day: { "$dayOfMonth": '$postedDate' },
+                    messageMonth: { "$month": "$postedDate" }
                 }
             },
             {
                 $group: {
-                    _id: {day: "$day", month: "$messageMonth"},
-                    messages: {$sum: 1}
+                    _id: { day: "$day", month: "$messageMonth" },
+                    messages: { $sum: 1 }
                 }
             },
             {
@@ -306,9 +303,16 @@ exports.getGroupMessagesMonthlyCount = (mongoCollections) => {
                     '_id.month': month
                 }
             }
-        ], (err, result) => {
-            if (err) res.status(500).send(err);
-                res.send(result);
-        })
+        ])
+        res.send(result);
+    } catch (error) {
+        handleError(res, error)
     }
+}
+
+
+function handleError(res, error) {
+    console.log("error")
+    console.log(error)
+    res.status(500).send(error)
 }

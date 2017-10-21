@@ -7,7 +7,8 @@ const filterReducer = require('./lib/filters').filterReducer
 const Command = require("./lib/commands")
 const CommonFunctions = require("./lib/commonFunctions")
 const token = process.env.BOT_TOKEN || require('./config').bot_token
-var database = require('./lib/db')
+const database = require('./lib/db')
+const mongoose = require('./api/mongoose')
 const api = require('./api/app')
 
 const actionTypes = {
@@ -79,8 +80,8 @@ database.db(function (db) {
             api.serve(mongoCollections);
 
         })
-    mongoCollections.mongoGroupMembers.ensureIndex({'userid': 1, 'groupId': 1}, {unique: true})
-    mongoCollections.mongoUserGroups.ensureIndex({'user': 1, 'group.id': 1}, {unique: true})
+    mongoCollections.mongoGroupMembers.createIndex({'userid': 1, 'groupId': 1}, {unique: true})
+    mongoCollections.mongoUserGroups.createIndex({'user': 1, 'group.id': 1}, {unique: true})
 });
 
 const command = new Command(log, actionTypes, bot, mongoCollections)
@@ -135,21 +136,26 @@ async function tryFilterMessage(msg) {
     let cfg = await mongoCollections.mongoGroups.findOne({ groupId: msg.chat.id }); // load group configuration
     if (cfg && cfg.helloMsg && msg.new_chat_member) {
         log(actionTypes.hello, msg);
-        var helloMsg = prepareHelloMessage(cfg, msg);
+        let helloMsg = prepareHelloMessage(cfg, msg);
         let messageOptions = { parse_mode: "markdown" };
         if (!cfg.joinedMsg) {
             messageOptions.reply_to_message_id = msg.message_id;
         }
         bot.sendMessage(msg.chat.id, helloMsg, messageOptions);
-        mongoCollections.mongoGroupMembers.insertOne({
+        await mongoCollections.mongoGroupMembers.insertOne({
             userid: msg.new_chat_member.id,
             firstname: msg.new_chat_member.first_name,
             lastname: msg.new_chat_member.last_name,
             groupId: msg.chat.id,
             joinDate: new Date()
-        }).then((res) => {}, (err) => {});
+        })
 
     }
+
+    if(cfg && msg.left_chat_member){
+        await mongoCollections.mongoGroupMembers.findOneAndDelete({userid: msg.left_chat_member.id})
+    }
+
     let admins = await commonFunctions.getChatAdmins(msg.chat); // get list of admins
     if (filterReducer(msg, cfg, admins)) {
         log(actionTypes.deleteFilteredMessage, msg);
