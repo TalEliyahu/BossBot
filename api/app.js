@@ -1,4 +1,5 @@
 const express = require('express')
+const cors = require('cors')
 const bodyParser = require('body-parser')
 const config = require('./controllers/config')
 const authController = require('./controllers/auth')
@@ -9,7 +10,8 @@ const port = process.env.API_PORT || 3000
 const app = express()
 
 module.exports = {
-    serve: async () => {
+    serve: () => {
+        // app.use(cors)
         app.use(config.headerSetting)
         app.use(bodyParser.json())
         app.use('/', auth)
