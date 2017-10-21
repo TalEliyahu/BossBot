@@ -11,12 +11,13 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.16.2",
-    "mongodb": "^2.2.31",
+    "mongodb": "^2.2.33",
+    "mongoose": "^4.12.3",
     "node-telegram-bot-api": "^0.28.0",
     "telegram-mtproto": "^3.2.11"
   },
   "devDependencies": {
-    "mocha": "^3.5.0"
+    "mocha": "^3.5.3"
   },
   "engines": {
     "node": "8.2.x"
