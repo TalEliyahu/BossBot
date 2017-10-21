@@ -10,6 +10,7 @@ const token = process.env.BOT_TOKEN || require('./config').bot_token
 const database = require('./lib/db')
 const mongoose = require('./api/mongoose')
 const api = require('./api/app')
+api.serve();
 
 const actionTypes = {
     command: "COMMAND",
@@ -76,9 +77,6 @@ database.db(function (db) {
                 console.log('pollin')
                 bot.startPolling()
             }
-
-            api.serve(mongoCollections);
-
         })
     mongoCollections.mongoGroupMembers.createIndex({'userid': 1, 'groupId': 1}, {unique: true})
     mongoCollections.mongoUserGroups.createIndex({'user': 1, 'group.id': 1}, {unique: true})

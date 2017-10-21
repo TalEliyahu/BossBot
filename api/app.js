@@ -9,9 +9,9 @@ const port = process.env.API_PORT || 3000
 const app = express()
 
 module.exports = {
-    serve: function (mongoCollections) {
+    serve: async () => {
+        app.use(config.headerSetting)
         app.use(bodyParser.json())
-        app.use((req, res, next) => config.headerSetting(req, res, next))
         app.use('/', auth)
         app.use('/dashboard', dashboard)
         app.use('/group', group)
