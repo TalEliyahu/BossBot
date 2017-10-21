@@ -40,7 +40,7 @@ if (process.env.APP_URL) {
     console.log("using webhooks, " + process.env.APP_URL)
     options = {
         webHook: {
-            port: process.env.APP_PORT
+            port: process.env.PORT
         }
     }
 }
