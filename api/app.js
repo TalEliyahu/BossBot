@@ -5,7 +5,7 @@ const authController = require('./controllers/auth')
 const group = require ('./routes/group')
 const dashboard = require('./routes/dashboard')
 const auth = require ('./routes/auth')
-const port = process.env.PORT || 3000
+const port = process.env.API_PORT || 3000
 const app = express()
 
 module.exports = {
