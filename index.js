@@ -40,7 +40,7 @@ if (process.env.APP_URL) {
     console.log("using webhooks, " + process.env.APP_URL)
     options = {
         webHook: {
-            port: process.env.PORT
+            // port: process.env.PORT
         }
     }
 }
@@ -72,7 +72,7 @@ database.db(function (db) {
             //me = await bot.getMe()
             if (url) {
                 console.log('hookin')
-                bot.setWebHook(`${url}/bot${token}`)
+                // bot.setWebHook(`${url}/bot${token}`)
             } else {
                 console.log('pollin')
                 bot.startPolling()
