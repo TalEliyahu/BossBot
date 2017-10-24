@@ -1,7 +1,7 @@
-'use strict'
+'use strict';
 
 const { Router } = require('express');
-const authController = require('./../controllers/auth')
+const authController = require('./../controllers/auth');
 const router = new Router();
 
 router.post('/login', authController.login);
