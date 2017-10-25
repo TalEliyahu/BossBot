@@ -106,7 +106,7 @@ function restrictSpammer(msg) {
 function prepareHelloMessage(cfg, msg) {
     let message = '';
     const name = (msg.new_chat_participant.first_name || '' + ' ' + msg.new_chat_participant.last_name || '').trim() || msg.new_chat_participant.username;
-    message = cfg.helloMsgString || 'Thanks for joining, *$name*.Please follow the guidelines of the group and enjoy your time';
+    message = cfg.helloMsgString || 'Thanks for joining, *$name*. Please follow the guidelines of the group and enjoy your time';
     return message.replace('$name', name);
 }
 
