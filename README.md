@@ -1,4 +1,4 @@
-# Telegram Bot for Admins
+# BossBot Telegram Bot for Admins
 Open-source bot that helps you to administrate Telegram groups.
 
 Follow Us On [![alt text][2.1]][2]
