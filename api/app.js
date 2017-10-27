@@ -5,8 +5,9 @@ const config = require('./controllers/config')
 const authController = require('./controllers/auth')
 const group = require ('./routes/group')
 const dashboard = require('./routes/dashboard')
+const stats = require('./routes/stats')
 const auth = require ('./routes/auth')
-const port = process.env.API_PORT || 3000
+const port = 3000
 const app = express()
 
 module.exports = {
@@ -17,6 +18,7 @@ module.exports = {
         app.use('/', auth)
         app.use('/dashboard', dashboard)
         app.use('/group', group)
+        app.use('/stats', stats)
         app.listen(port, () => {
             console.log('Listening at port :' + port);
         }).on('error', function (err) {
