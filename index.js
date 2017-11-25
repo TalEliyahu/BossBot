@@ -182,7 +182,7 @@ function subscribeToBotEvents() {
         await command.setHelloCommand(msg, match);
     });
     // Bot reaction on commands "/start"
-    bot.onText(/\/start/, function (msg) {
+    bot.onText(/\/bossbot/, function (msg) {
         command.startCommand(msg);
     });
     bot.onText(/\/log/, async function (msg) {
