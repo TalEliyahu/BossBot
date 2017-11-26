@@ -63,6 +63,7 @@ database.db(function (db) {
     mongoCollections.mongoWhiteList = db.collection('mongoWhiteList');
     mongoCollections.mongoGroupMembers = db.collection('members');
     mongoCollections.mongoUserGroups = db.collection('userGroups');
+    mongoCollections.mongoAllowedAdmins = db.collection('allowedAdmins');
     mongoCollections.mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 }) //store messages for 60 days
         .then(async () => {
             let url = process.env.APP_URL;
