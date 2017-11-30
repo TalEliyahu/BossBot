@@ -134,7 +134,7 @@ async function tryFilterMessage(msg) {
         log(actionTypes.hello, msg);
         let helloMsg = prepareHelloMessage(cfg, msg);
         let messageOptions = { parse_mode: 'markdown' };
-        if (!cfg.joinedMsg) {
+        if (cfg && !cfg.joinedMsg) {
             messageOptions.reply_to_message_id = msg.message_id;
         }
         bot.sendMessage(msg.chat.id, helloMsg, messageOptions);
