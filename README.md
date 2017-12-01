@@ -58,6 +58,12 @@ If enabled, bot will delete all mesages with commands, e.g. "`/config`"
 ### Restrict spam
 If enabled, bot will delete messages that user sends too frequently. Rules and type of restriction will be configurable in future releases.
 
+### Hello messages for new members
+If enabled, bot will wellcome new members with provided message. You can change default message with "`/set_hello`" command. Read "`/help`" for more information.
+
+### Allow admins to configure bot
+If enabled, all admins of your group can use "`/config`" command. If disabled, you can separately grant access to any admin in your group, using "`/access`" command.
+
 ## Chat commands
 `/config` - start to configure current group.
 
@@ -73,5 +79,8 @@ If enabled, bot will delete messages that user sends too frequently. Rules and t
 `/set_hello %%%` - sets hello message for new users. Message can have placeholder `$name`. You can call `/set_hello` without message to set default message for current group. To disable Hello message use configuration keyboard.
 
 `/help` - show help message.
+
+`/access` - show access menu to separately configure admins that can configure bot for current group.
+
 ## Contibution
 You are free to help us to implement new features that described in issues. Please, make PRs into `develop` branch.
