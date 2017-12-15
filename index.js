@@ -107,37 +107,27 @@ function restrictSpammer(msg) {
 function prepareHelloMessage(cfg, msg) {
     let message = '';
     const name = (msg.new_chat_participant.first_name || '' + ' ' + msg.new_chat_participant.last_name || '').trim() || msg.new_chat_participant.username;
-    message = cfg.helloMsgString || 'Thanks for joining, *$name*. Please follow the guidelines of the group and enjoy your time';
+    message = cfg.helloMsgString || `Thanks for joining the group '${msg.chat.title}', *$name*. Please follow the guidelines of the group and enjoy your time`;
     return message.replace('$name', name);
 }
 
-async function kickByReply(msg) {
-    let admins = await commonFunctions.getChatAdmins(msg.chat);
-    if (commonFunctions.messageSenderIsAdmin(admins, msg) && !commonFunctions.messageSenderIsAdmin(admins, msg.reply_to_message)) {
-        await bot.kickChatMember(msg.chat.id, msg.reply_to_message.from.id);
-        bot.unbanChatMember(msg.chat.id, msg.reply_to_message.from.id);
-    }
-}
-
-async function banByReply(msg) {
-    let admins = await commonFunctions.getChatAdmins(msg.chat);
-    if (commonFunctions.messageSenderIsAdmin(admins, msg) && !commonFunctions.messageSenderIsAdmin(admins, msg.reply_to_message)) {
-        bot.kickChatMember(msg.chat.id, msg.reply_to_message.from.id);
-    }
-}
 
 //check if message need to be deleted according on filters
 async function tryFilterMessage(msg) {
     mongoCollections.mongoMessages.insertOne({ postedDate: new Date(), message: msg });
     let cfg = await mongoCollections.mongoGroups.findOne({ groupId: msg.chat.id }); // load group configuration
     if (cfg && cfg.helloMsg && msg.new_chat_member) {
+        // Sends Hello messages to New Members
         log(actionTypes.hello, msg);
         let helloMsg = prepareHelloMessage(cfg, msg);
         let messageOptions = { parse_mode: 'markdown' };
         if (cfg && !cfg.joinedMsg) {
             messageOptions.reply_to_message_id = msg.message_id;
         }
-        bot.sendMessage(msg.chat.id, helloMsg, messageOptions);
+        // check if we can send to User, if not then send to group. 
+        bot.sendMessage(msg.new_chat_member.id, helloMsg, messageOptions).catch(() => { 
+            bot.sendMessage(msg.chat.id, helloMsg, messageOptions)           
+        })
         await mongoCollections.mongoGroupMembers.insertOne({
             userid: msg.new_chat_member.id,
             firstname: msg.new_chat_member.first_name,
@@ -149,6 +139,7 @@ async function tryFilterMessage(msg) {
     }
 
     if(cfg && msg.left_chat_member){
+        // Delete Record when User exists
         await mongoCollections.mongoGroupMembers.findOneAndDelete({userid: msg.left_chat_member.id});
     }
 
@@ -168,10 +159,10 @@ function subscribeToBotEvents() {
         await command.configCommand(msg);
     });
     bot.onText(/^\/kick/, async (msg) => {
-        await kickByReply(msg);
+        await command.kickByReply(msg);
     });
     bot.onText(/\/ban/, async (msg) => {
-        await banByReply(msg);
+        await command.banByReply(msg);
     });
     bot.onText(/\/warn/, async (msg) => {
         await command.warnCommand(msg);
