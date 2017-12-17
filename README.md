@@ -73,7 +73,7 @@ If enabled, all admins of your group can use "`/config`" command. If disabled, y
 ## Chat commands
 `/config` - start to configure current group.
 
-`/blacklist` - Gives a list of blacklisted word for current group.
+`/blacklist` - Gives a list of blacklisted word for current group, if replied to a message by admin by message will be blacklisted. 
 
 `/kick` - removes user from chat. Need to be written in a reply to user you want to restrict.
 
