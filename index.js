@@ -160,7 +160,7 @@ async function tryFilterMessage(msg) {
 
 //prepair bot to interact with users
 function subscribeToBotEvents() {
-    bot.onText(/\/config/, async function (msg) {
+    bot.onText(/\/setting/, async function (msg) {
         await command.configCommand(msg);
     });
     bot.onText(/^\/kick/, async (msg) => {

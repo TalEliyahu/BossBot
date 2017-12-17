@@ -31,12 +31,12 @@ $ npm start
 1) Add your bot to supergroup.
 2) Promote him to admin
 3) Activate bot by sending him any message.
-4) Configure it by typing `/config` right in your group. This step is important, because you can administer more than one group, so bot need to know, what group you want to configure right now. 
+4) Configure it by typing `/setting` right in your group. This step is important, because you can administer more than one group, so bot need to know, what group you want to configure right now. 
 5) Bot will send you keyboard (in private message), that you can use to toggle message filters and more.
 
 ## Features
 
-You can activate and configure features in the menu, that bot sends you by typing `/config` in the supergroup you want to configure. You must be admin of this supergroup.
+You can activate and configure features in the menu, that bot sends you by typing `/setting` in the supergroup you want to configure. You must be admin of this supergroup.
 
 Just push the button with function you want to toggle.
 
@@ -59,7 +59,7 @@ If enabled, bot will delete all mesages containing blacklisted word. To get all 
 This will reset(remove) all the blacklisted words for a particular group.
 
 ### Delete messages with commands
-If enabled, bot will delete all mesages with commands, e.g. "`/config`"
+If enabled, bot will delete all mesages with commands, e.g. "`/setting`"
 
 ### Restrict spam
 If enabled, bot will delete messages that user sends too frequently. Rules and type of restriction will be configurable in future releases.
@@ -68,10 +68,10 @@ If enabled, bot will delete messages that user sends too frequently. Rules and t
 If enabled, bot will wellcome new members with provided message. You can change default message with "`/set_hello`" command. Read "`/help`" for more information.
 
 ### Allow admins to configure bot
-If enabled, all admins of your group can use "`/config`" command. If disabled, you can separately grant access to any admin in your group, using "`/access`" command.
+If enabled, all admins of your group can use "`/setting`" command. If disabled, you can separately grant access to any admin in your group, using "`/access`" command.
 
 ## Chat commands
-`/config` - start to configure current group.
+`/setting` - start to configure current group.
 
 `/blacklist` - Gives a list of blacklisted word for current group, if replied to a message by admin by message will be blacklisted. 
 
