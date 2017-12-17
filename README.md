@@ -52,6 +52,12 @@ If enabled, bot will delete all mesages with any arabic symbols.
 ### Delete messages with urls
 If enabled, bot will delete all mesages with urls. Urls are detected by default telegram mechanism.
 
+### Delete messages with Blacklisted words
+If enabled, bot will delete all mesages containing blacklisted word. To get all blacklisted words in group use "`/blacklist`".
+
+### Reset blacklisted words
+This will reset(remove) all the blacklisted words for a particular group.
+
 ### Delete messages with commands
 If enabled, bot will delete all mesages with commands, e.g. "`/config`"
 
@@ -67,6 +73,8 @@ If enabled, all admins of your group can use "`/config`" command. If disabled, y
 ## Chat commands
 `/config` - start to configure current group.
 
+`/blacklist` - Gives a list of blacklisted word for current group, if replied to a message by admin by message will be blacklisted. 
+
 `/kick` - removes user from chat. Need to be written in a reply to user you want to restrict.
 
 `/ban` - removes and add user to blocklist. Need to be written in a reply to user you want to restrict.
@@ -77,6 +85,8 @@ If enabled, all admins of your group can use "`/config`" command. If disabled, y
 
 ## Bot command
 `/set_hello %%%` - sets hello message for new users. Message can have placeholder `$name`. You can call `/set_hello` without message to set default message for current group. To disable Hello message use configuration keyboard.
+
+`/blacklist %word%` Adds the new word to blacklist, turn on Delete blacklist from configuration keyboard to delete all messages with such words. 
 
 `/help` - show help message.
 
