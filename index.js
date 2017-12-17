@@ -1,6 +1,7 @@
 // Import modules
 const TelegramBot = require('node-telegram-bot-api');
 const MongoCollections = require('./lib/MongoCollections');
+const { mongoBlacklist } = require('./api/schema/blackList');
 const filterReducer = require('./lib/filters').filterReducer;
 const Command = require('./lib/commands');
 const CommonFunctions = require('./lib/commonFunctions');
@@ -29,7 +30,9 @@ const actionTypes = {
     whitelistAdding: 'ADDING_LINKS_TO_WHITELIST',
     whitelistNoLinksProvided: 'NO_LINKS_PROVIDED_TO_WHITELIST',
     whitelistClear: 'CLEAR_WHITELIST',
-    whitelistRemoveLinks: 'REMOVE_LINKS_FROM_WHITELIST'
+    whitelistRemoveLinks: 'REMOVE_LINKS_FROM_WHITELIST',
+    blacklistWordAdd:'ADDING_BLACKLIST_WORD',
+    blacklistWordRemove:'REMOVED_BLACKLIST_WORD'
 };
 
 let options = {};
@@ -61,6 +64,7 @@ database.db(function (db) {
     mongoCollections.mongoActionLog = db.collection('actionLog');
     mongoCollections.mongoWarns = db.collection('warns');
     mongoCollections.mongoWhiteList = db.collection('mongoWhiteList');
+    mongoCollections.mongoBlackList=db.collection('blackListWord');
     mongoCollections.mongoGroupMembers = db.collection('members');
     mongoCollections.mongoUserGroups = db.collection('userGroups');
     mongoCollections.mongoAllowedAdmins = db.collection('allowedAdmins');
@@ -144,7 +148,8 @@ async function tryFilterMessage(msg) {
     }
 
     let admins = await commonFunctions.getChatAdmins(msg.chat); // get list of admins
-    if (filterReducer(msg, cfg, admins)) {
+    let blacklist = (await mongoBlacklist.findOne({groupId:msg.chat.id}) || { words : null })  // get blacklisted words
+    if (filterReducer(msg, cfg, admins, blacklist.words)) {
         log(actionTypes.deleteFilteredMessage, msg);
         bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { });
     }
@@ -166,6 +171,9 @@ function subscribeToBotEvents() {
     });
     bot.onText(/\/warn/, async (msg) => {
         await command.warnCommand(msg);
+    });
+    bot.onText(/^\/blacklist(\s(.*))?$/, async (msg, match) => {
+        await command.blacklistCommand(msg, match);
     });
     bot.onText(/\/unwarn/, async (msg) => {
         await command.unwarnCommand(msg);
