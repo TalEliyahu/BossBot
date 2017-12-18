@@ -2,6 +2,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const MongoCollections = require('./lib/MongoCollections');
 const { mongoBlacklist } = require('./api/schema/blackList');
+const { User } = require('./api/schema/user');
 const filterReducer = require('./lib/filters').filterReducer;
 const Command = require('./lib/commands');
 const CommonFunctions = require('./lib/commonFunctions');
@@ -125,6 +126,7 @@ async function tryFilterMessage(msg) {
         log(actionTypes.hello, msg);
         let helloMsg = prepareHelloMessage(cfg, msg);
         let messageOptions = { parse_mode: 'markdown' };
+        command.saveUserfromGroup(msg);        
         if (cfg && !cfg.joinedMsg) {
             messageOptions.reply_to_message_id = msg.message_id;
         }
@@ -145,6 +147,8 @@ async function tryFilterMessage(msg) {
     if(cfg && msg.left_chat_member){
         // Delete Record when User exists
         await mongoCollections.mongoGroupMembers.findOneAndDelete({userid: msg.left_chat_member.id});
+        // update user record 
+        await User.update({userId:msg.left_chat_member.id},{ $pull:{groups:msg.chat.id}}) 
     }
 
     let admins = await commonFunctions.getChatAdmins(msg.chat); // get list of admins
@@ -160,8 +164,13 @@ async function tryFilterMessage(msg) {
 
 //prepair bot to interact with users
 function subscribeToBotEvents() {
+    
+    bot.onText(/\/start/, async function (msg) {
+        await command.startCommand(msg);
+    });
+
     bot.onText(/\/setting/, async function (msg) {
-        await command.configCommand(msg);
+        await command.settingCommand(msg);
     });
     bot.onText(/^\/kick/, async (msg) => {
         await command.kickByReply(msg);
