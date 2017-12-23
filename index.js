@@ -1,7 +1,7 @@
 // Import modules
 const TelegramBot = require('node-telegram-bot-api');
 const MongoCollections = require('./lib/MongoCollections');
-const { mongoBlacklist } = require('./api/schema/blackList');
+const { mongoBlacklist } = require('./api/schema/mongoBlacklist');
 const { User } = require('./api/schema/user');
 const filterReducer = require('./lib/filters').filterReducer;
 const Command = require('./lib/commands');
