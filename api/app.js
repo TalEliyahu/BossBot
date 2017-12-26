@@ -14,6 +14,7 @@ module.exports = {
     serve: () => {
         // app.use(cors)
         app.use(config.headerSetting)
+        app.use(bodyParser.urlencoded({ extended: false }))
         app.use(bodyParser.json())
         app.use('/', auth)
         app.use('/dashboard', dashboard)

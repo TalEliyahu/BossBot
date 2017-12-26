@@ -20,5 +20,15 @@ const memberSchema = new mongoose.Schema({
         default:Date.now()
     } 
 }, {collection: 'members'});
+
+memberSchema.statics.getGroupMembers = async (groupIds) => {
+    return member.find({ groupId: { $in: groupIds } });
+};
+
+memberSchema.statics.findByGroupId = async (groupId) => {
+    return member.find(({ groupId: groupId }));
+};
+
+
 let member = mongoose.model('member', memberSchema);
 module.exports = { member };
