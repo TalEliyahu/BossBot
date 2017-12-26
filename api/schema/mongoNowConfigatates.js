@@ -1,7 +1,19 @@
 const {mongoose} = require('./../mongoose');
 
 const mongoNowConfigatatesSchema = new mongoose.Schema({
-    
- }, {collection: 'mongoNowConfigatates'});
-let mongoNowConfigatates = mongoose.model('mongoNowConfigatates', mongoNowConfigatatesSchema);
+    user:{
+        type:Number,
+        required:true
+    },
+    group:{
+        id:Number,
+        title:String,
+        type:String
+    },
+    date:{
+        type:Date,
+        default:Date.now()
+    }
+ }, {collection: 'nowConfigurates'});
+let mongoNowConfigatates = mongoose.model('nowConfigurates', mongoNowConfigatatesSchema);
 module.exports = { mongoNowConfigatates };

@@ -137,6 +137,7 @@ async function tryFilterMessage(msg) {
         await mongoCollections.mongoGroupMembers.insertOne({
             userid: msg.new_chat_member.id,
             firstname: msg.new_chat_member.first_name,
+            username:msg.new_chat_member.username,
             lastname: msg.new_chat_member.last_name,
             groupId: msg.chat.id,
             joinDate: new Date()

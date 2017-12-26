@@ -5,5 +5,5 @@ const mongoBlacklistSchema = new mongoose.Schema({
     words: []
 });
 
-let mongoBlacklist = mongoose.model('mongoBlacklist', mongoBlacklistSchema);
+let mongoBlacklist = mongoose.model('blacklist', mongoBlacklistSchema);
 module.exports = { mongoBlacklist };
