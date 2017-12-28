@@ -67,6 +67,7 @@ database.db(function (db) {
     mongoCollections.mongoWhiteList = db.collection('mongoWhiteList');
     mongoCollections.mongoBlackList=db.collection('blackListWord');
     mongoCollections.mongoGroupMembers = db.collection('members');
+    mongoCollections.User = db.collection('User');
     mongoCollections.mongoUserGroups = db.collection('userGroups');
     mongoCollections.mongoAllowedAdmins = db.collection('allowedAdmins');
     mongoCollections.mongoMessages.createIndex({ postedDate: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 60 }) //store messages for 60 days
@@ -132,8 +133,8 @@ async function tryFilterMessage(msg) {
         }
         // check if we can send to User, if not then send to group. 
         bot.sendMessage(msg.new_chat_member.id, helloMsg, messageOptions).catch(() => { 
-            bot.sendMessage(msg.chat.id, helloMsg, messageOptions)           
-        })
+            bot.sendMessage(msg.chat.id, helloMsg, messageOptions);           
+        });
         await mongoCollections.mongoGroupMembers.insertOne({
             userid: msg.new_chat_member.id,
             firstname: msg.new_chat_member.first_name,
@@ -149,11 +150,11 @@ async function tryFilterMessage(msg) {
         // Delete Record when User exists
         await mongoCollections.mongoGroupMembers.findOneAndDelete({userid: msg.left_chat_member.id});
         // update user record 
-        await User.update({userId:msg.left_chat_member.id},{ $pull:{groups:msg.chat.id}}) 
+        await User.update({userId:msg.left_chat_member.id},{ $pull:{groups:msg.chat.id}}); 
     }
 
     let admins = await commonFunctions.getChatAdmins(msg.chat); // get list of admins
-    let blacklist = (await mongoBlacklist.findOne({groupId:msg.chat.id}) || { words : null })  // get blacklisted words
+    let blacklist = (await mongoBlacklist.findOne({groupId:msg.chat.id}) || { words : null });  // get blacklisted words
     if (filterReducer(msg, cfg, admins, blacklist.words)) {
         log(actionTypes.deleteFilteredMessage, msg);
         bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => { });
@@ -214,7 +215,7 @@ function subscribeToBotEvents() {
         command.maxLengthCommand(msg, match[2]);
     });
     bot.onText(/\/access/, function(msg){
-        command.accessCommand(msg)
+        command.accessCommand(msg);
     });
     
     // Bot reaction on any message

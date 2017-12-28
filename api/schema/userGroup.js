@@ -13,7 +13,7 @@ const userGroupSchema = new mongoose.Schema({
         type:Date,
         default:Date.now()
     }
- }, {collection: 'userGroups'});
+}, {collection: 'userGroups'});
 
 
 userGroupSchema.statics.getGroupStats = async function (userId) {
@@ -214,7 +214,7 @@ userGroupSchema.statics.getBotActivity = async function (userId) {
                 '_id.year': (new Date()).getFullYear
             }
         }
-    ])
+    ]);
 
 };
 
@@ -366,7 +366,7 @@ userGroupSchema.statics.getDeletedMessagesDetails = async function (userId) {
                 '_id.year' : (new Date()).getFullYear
             }
         }
-    ])
+    ]);
 };
 
 let userGroup = mongoose.model('userGroup', userGroupSchema);

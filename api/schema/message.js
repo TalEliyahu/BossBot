@@ -9,14 +9,14 @@ const messagesLogSchema = new mongoose.Schema({
         type:Date,
         default:Date.now()
     } 
- }, {collection: 'messagesLog'});
+}, {collection: 'messagesLog'});
 
- messagesLogSchema.statics.getGroupData = async (groupIds) => {
+messagesLogSchema.statics.getGroupData = async (groupIds) => {
     let result = await messagesLog.find({ 'message.chat.id': { $in: groupIds } });
     result = result.map(o => o.toObject());
     const messages = result.filter(x => { return x.message.entities === undefined; }).length;
     const actions = result.filter(x => { return x.message.entities !== undefined; }).length;
-    return { messages, actions }
+    return { messages, actions };
 
 };
 

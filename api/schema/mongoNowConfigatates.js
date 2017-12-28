@@ -14,6 +14,6 @@ const mongoNowConfigatatesSchema = new mongoose.Schema({
         type:Date,
         default:Date.now()
     }
- }, {collection: 'nowConfigurates'});
+}, {collection: 'nowConfigurates'});
 let mongoNowConfigatates = mongoose.model('nowConfigurates', mongoNowConfigatatesSchema);
 module.exports = { mongoNowConfigatates };

@@ -10,8 +10,6 @@ const mongoWhiteListSchema = new mongoose.Schema({
         type:Date,
         default:Date.now()
     }
-
-
- }, {collection: 'mongoWhiteList'});
+}, {collection: 'mongoWhiteList'});
 let mongoWhiteList = mongoose.model('mongoWhiteList', mongoWhiteListSchema);
 module.exports = { mongoWhiteList };

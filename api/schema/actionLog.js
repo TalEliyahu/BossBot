@@ -1,4 +1,4 @@
-const {mongoose} = require('./../mongoose')
+const {mongoose} = require('./../mongoose');
 const actionLogSchema = new mongoose.Schema({ 
     actionDate:{
         type:Date,
@@ -10,6 +10,6 @@ const actionLogSchema = new mongoose.Schema({
         type:Date,
         default:Date.now()
     }
-}, {collection: 'actionLog'})
+}, {collection: 'actionLog'});
 let actionLog = mongoose.model('actionLog', actionLogSchema);
 module.exports = { actionLog };

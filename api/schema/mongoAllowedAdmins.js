@@ -10,6 +10,6 @@ const mongoAllowedAdminsSchema = new mongoose.Schema({
         type:Date,
         default:Date.now()
     }
- }, {collection: 'allowedAdmins'});
+}, {collection: 'allowedAdmins'});
 let mongoAllowedAdmins = mongoose.model('allowedAdmins', mongoAllowedAdminsSchema);
 module.exports = { mongoAllowedAdmins };

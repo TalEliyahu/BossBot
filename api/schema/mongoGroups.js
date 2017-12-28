@@ -37,6 +37,6 @@ const mongoGroupsSchema = new mongoose.Schema({
         type:Date,
         default:Date.now()
     }
- }, {collection: 'groups'});
+}, {collection: 'groups'});
 let mongoGroups = mongoose.model('groups', mongoGroupsSchema);
 module.exports = { mongoGroups };
