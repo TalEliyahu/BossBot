@@ -13,31 +13,31 @@ If you are about to obtain your own copy/fork of this bot complete the following
 
 1. Clone repo
 
-```sh
-$ git clone https://github.com/Singapore-Tech-Entrepreneurs/telegram_bot_for_admins.git
-```
+    ```sh
+    $ git clone https://github.com/Singapore-Tech-Entrepreneurs/telegram_bot_for_admins.git
+    ```
 
 1. Install dependencies (you need [node.js](https://nodejs.org/) and [NPM](https://www.npmjs.com/) installed)
 
-```sh
-$ cd telegram_bot_for_admins
-$ npm install
-```
+    ```sh
+    $ cd telegram_bot_for_admins
+    $ npm install
+    ```
 
-1. Create `config.json` file (you have `config-example.json`, you can copy and edit it). Fill it with your bot api token and mongo connection string. To obtain telegram bot token you may need to use [BotFather](http://t.me/BotFather). Free mongo database you can obtain at [mlab.com](http://mlab.com), for example.
+1. Create `config.json` file (you have `config-example.json`, you can copy and edit it). Fill it with your bot api token and mongo connection string. To obtain         telegram bot token you may need to use [BotFather](http://t.me/BotFather). Free mongo database you can obtain at [mlab.com](http://mlab.com), for example.
 
-```javascript
-{
-    "bot_token": "<tokenFromBotFather>",
-    "mongo_connection": "<mongoDBConnection>"
-}
-```
+    ```javascript
+    {
+        "bot_token": "<tokenFromBotFather>",
+        "mongo_connection": "<mongoDBConnection>"
+    }
+    ```
 
 1. Run it
 
-```sh
-$ npm start
-```
+    ```sh
+    $ npm start
+    ```
 
 ## Using
 
