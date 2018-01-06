@@ -4,7 +4,10 @@ const actionLogSchema = new mongoose.Schema({
         type:Date,
         default:Date.now()
     },
-    evenType:String,
+    eventType:{
+        type:String,
+        required:true
+    },
     payload:[],
     createdAt:{
         type:Date,
