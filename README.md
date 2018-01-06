@@ -29,7 +29,8 @@ If you are about to obtain your own copy/fork of this bot complete the following
     ```javascript
     {
         "bot_token": "<tokenFromBotFather>",
-        "mongo_connection": "<mongoDBConnection>"
+        "mongo_connection": "<mongoDBConnection>",
+        "test_connection": "<mongoDBConnection>"
     }
     ```
 

@@ -6,7 +6,10 @@ const mongoNowConfigatatesSchema = new mongoose.Schema({
         required:true
     },
     group:{
-        id:Number,
+        id:{
+            type:Number,
+            required:true
+        },
         title:String,
         type:String
     },

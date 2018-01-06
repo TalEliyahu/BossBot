@@ -1,7 +1,10 @@
 const {mongoose} = require('./../mongoose');
 
 const schema = new mongoose.Schema({
-    userId: String,
+    userId: {
+        type:Number,
+        required:true
+    },
     name: String,
     username:String,
     accessible:{

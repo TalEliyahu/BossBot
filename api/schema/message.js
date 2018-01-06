@@ -4,7 +4,10 @@ const messagesLogSchema = new mongoose.Schema({
         type:Date,
         default:Date.now()
     },
-    message:{},
+    message:{
+        type:Object,
+        required:true
+    },
     createdAt:{
         type:Date,
         default:Date.now()

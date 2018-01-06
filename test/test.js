@@ -113,7 +113,29 @@ const msgWithUrl = {
     entities: [ { offset: 0, length: 14, type: 'url' } ]
 };
 
-const msgBotCmd = {};
+const msgBotCmd = {
+    message_id: 7,
+    from: {
+        id: 402684405,
+        is_bot: false,
+        first_name: 'Anton',
+        last_name: 'Bryansky',
+        username: 'Nacalyator'
+    },
+    chat: {
+        id: -1001055197589,
+        title: 'Naca',
+        type: 'supergroup'
+    },
+    date: 1504309593,
+    text: '/command',
+    entities: [{
+        offset: 0,
+        length: 6,
+        type: 'bot_command'
+    }]
+};
+
 
 // Filter functions tests
 describe('isJoinedMessage', function() {

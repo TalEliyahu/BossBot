@@ -1,4 +1,5 @@
 {
   "bot_token": "<your telegram token here>",
-  "mongo_connection": "mongodb:\/\/<your connection here>"
+  "mongo_connection": "mongodb:\/\/<your connection here>",
+  "test_connection":"mongodb:\/\/<your Test connection here, No production database over here, as it will delete it"
 }
